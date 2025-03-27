@@ -1,0 +1,122 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  utorid      String   @unique
+  name        String?   
+  email       String   @unique               // Unique, Valid University of Toronto email
+  password    String   @default("pass")                      // Hashed password for authentication
+  verified    Boolean  @default(false)       // Account verification status
+  role        String   @default("REGULAR")      // Roles: regular, CASHIER, MANAGER, SUPERUSER
+  points      Int      @default(0)           // Points balance
+  expiresAt   DateTime?                      // Expiration date for account activation/reset
+  resetToken  String?  @unique               // Token for password reset
+  createdAt   DateTime @default(now())       // Timestamp for account creation
+  updatedAt   DateTime @updatedAt            // Timestamp for last update
+  suspicious  Boolean  @default(false)       // Whether the user is marked as suspicious
+  birthday    DateTime?
+  lastLogin   DateTime?
+  avatarUrl   String?
+  // Relations
+  usages      Usage[]  // Add this line to establish the relationship with Usage
+
+  // Indexes
+  @@index([utorid])
+  @@index([email])
+}
+
+// transactions Transaction[] // A user can have many transactions
+model Transaction {
+  id          Int        @id @default(autoincrement())
+  utorid      String
+  type        String
+  spent       Float      @default(0)
+  earned      Int?
+  amount      Int        @default(0)
+  remark      String?
+  createdBy   String
+  relatedId   Int?
+  eventId     Int?
+  processed   Boolean    @default(false)
+  processedBy String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  suspicious  Boolean    @default(false)
+
+  // Relations
+  promotions  Promotion[]
+}
+
+// events       Event[]       // A user can organize many events
+model Event {
+  id            Int         @id @default(autoincrement())
+  name          String
+  description   String
+  location      String
+  startTime     DateTime
+  endTime       DateTime
+  capacity      Int?
+  pointsRemain  Int         @default(0)
+  pointsAwarded Int         @default(0)
+  published     Boolean     @default(false)
+  eventId       Int?
+  organizers    EventOrganizer[] // Relation to EventOrganizer
+  guests        EventGuest[]     // Relation to EventGuest
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("events")
+}
+
+model EventOrganizer {
+  id      Int    @id @default(autoincrement())
+  eventId Int
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  utorid  String
+  name    String
+
+  @@map("event_organizers")
+}
+
+model EventGuest {
+  id      Int    @id @default(autoincrement())
+  eventId Int
+  name    String?
+  event   Event  @relation(fields: [eventId], references: [id])
+  utorid  String // UTORid of the guest
+
+  @@map("event_guests")
+}
+
+
+
+// promotions   Promotion[]   // A user (manager) can create many promotions
+model Promotion {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        String   @default("automatic")  // Added type field
+  startTime   DateTime                        // Added startTime field
+  endTime     DateTime                        // Added endTime field 
+  isOneTime   Boolean  @default(false)
+  minSpending Int?
+  rate        Float?
+  points      Int?
+  usages      Usage[]
+  description String?
+  transactions Transaction[]
+}
+// usages
+model Usage {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  promotionId Int
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+}

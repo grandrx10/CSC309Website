@@ -7,7 +7,7 @@ const Events = () => {
       <NavBar>
         <div class="events">
             <h1>Events</h1>
-            <p>Placeholder for events list.</p>
+            <p>Placeholder for events list (Richard).</p>
         </div>
       </NavBar>
     </div>

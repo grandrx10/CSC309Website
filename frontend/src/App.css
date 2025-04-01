@@ -86,7 +86,7 @@
 }
 
 .close-button:hover {
-    background-color: #000000;
+    background-color: black;
     color: #007BFF;
 }
 
@@ -145,6 +145,12 @@
 
 .navbar-menu li button:hover::before {
     background-color: white;
+}
+
+.navbar-menu button.active {
+    background-color: #00352e;
+    color: white;
+    font-weight: bold;
 }
 
 .navbar-menu .log-out {

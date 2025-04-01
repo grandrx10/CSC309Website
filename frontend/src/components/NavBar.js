@@ -1,33 +1,49 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '../App.css';
 
 const NavBar = ({ children }) => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const isActive = (path) => location.pathname === path ? 'active' : '';
+    
     /* I borrowed some of the open/close functionality from:
     https://medium.com/swlh/how-to-make-a-side-navigation-bar-in-reactjs-c90747f3410c
     */
     const [width, setWidth] = useState("0%");
+    const [showSubMenu, setShowSubMenu] = useState(false);
     const openNav = () => {
         setWidth("15%")
     }
     const closeNav = () => {
         setWidth("0%")
     }
+    const toggleSubMenu = () => {
+        setShowSubMenu(!showSubMenu);
+    };
 
     return (
         <div>
             <button onClick={openNav} className="open-button">☰</button>
             <div className="navbar" style={{width: width}}>
                 <button onClick={closeNav} className="close-button">X</button>
-                <h2 className="navbar-title">Homepage</h2>
+                <h2 className="navbar-title">Pages</h2>
                 <ul className="navbar-menu">
-                    <li><button onClick={() => navigate('/home')}>Home</button></li>
-                    <li><button onClick={() => navigate('/promotions')}>Promotions</button></li>
-                    <li><button onClick={() => navigate('/transactions')}>Transactions</button></li>
-                    <li><button onClick={() => navigate('/events')}>Events</button></li>
-                    <li><button onClick={() => navigate('/settings')}>Settings</button></li>
-                    <li><button className="log-out">Log Out (not implemented)</button></li>
+                    <li><button onClick={() => navigate('/home')} className={isActive('/home')}>Home</button></li>
+                    <li><button onClick={() => navigate('/promotions')} className={isActive('/promotions')}>Promotions</button></li>
+                    <li>
+                        <button onClick={toggleSubMenu}>Transactions   {showSubMenu ? '\u25B2' : '\u25BC'}</button>
+                        {showSubMenu && (
+                            <ul className="sub-menu">
+                                <li><button onClick={() => navigate('/transactions')} className={isActive('/transactions')}>View All</button></li>
+                                <li><button onClick={() => navigate('/redeem')} className={isActive('/redeem')}>Redeem</button></li>
+                                <li><button onClick={() => navigate('/transfer')} className={isActive('/transfer')}>Transfer</button></li>
+                            </ul>
+                        )}
+                    </li>
+                    <li><button onClick={() => navigate('/events')} className={isActive('/events')}>Events</button></li>
+                    <li><button onClick={() => navigate('/settings')} className={isActive('/settings')}>Settings</button></li>
+                    <li><button onClick={() => navigate('/')} className={`log-out ${isActive('/')}`}>Log Out</button></li>
                 </ul>
             </div>
             <div className="main-content" style={{ marginLeft: width }}>

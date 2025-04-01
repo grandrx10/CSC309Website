@@ -1,5 +1,5 @@
 import React from 'react';
-import NavBar from '../../components/NavBar';
+import NavBar from '../../../components/NavBar';
 
 const Transactions = () => {
   return (
@@ -7,7 +7,7 @@ const Transactions = () => {
       <NavBar>
         <div class="transactions">
             <h1>Transactions</h1>
-            <p>Placeholder for transactions list.</p>
+            <p>Placeholder for transactions list (Mikhael).</p>
         </div>
       </NavBar>
     </div>

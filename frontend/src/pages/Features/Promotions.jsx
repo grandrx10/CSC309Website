@@ -7,7 +7,7 @@ const Promotions = () => {
       <NavBar>
         <div class="promotions">
             <h1>Promotions</h1>
-            <p>Placeholder for promotions list.</p>
+            <p>Placeholder for promotions list (Mikhael).</p>
         </div>
       </NavBar>
     </div>

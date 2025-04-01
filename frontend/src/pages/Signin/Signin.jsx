@@ -21,7 +21,8 @@ function SignIn() {
       });
 
       if (!response.ok) {
-        throw new Error("Invalid credentials");
+        const errorResponse = await response.json();
+        throw new Error(`Error ${response.status}: ${errorResponse.error}`);
       }
 
       const data = await response.json();

@@ -17,9 +17,9 @@ const NavBar = ({ children }) => {
 
     return (
         <div>
-            <button onClick={openNav} className="button-icon">☰</button>
+            <button onClick={openNav} className="open-button">☰</button>
             <div className="navbar" style={{width: width}}>
-                <button onClick={closeNav} className="button-icon">X</button>
+                <button onClick={closeNav} className="close-button">X</button>
                 <h2 className="navbar-title">Homepage</h2>
                 <ul className="navbar-menu">
                     <li><button onClick={() => navigate('/home')}>Home</button></li>

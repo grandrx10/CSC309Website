@@ -59,18 +59,34 @@
     align-items: center;
 }
 
-.button-icon {
+.open-button {
     font-size: 35px;
     background: #f0f0f0;
     border: none;
-    border-radius: 5px;
+    border-radius: 10px;
     cursor: pointer;
-    padding: 10px;
+    padding: 5px 10px;
     transition: background-color 0.3s, color 0.3s;
 }
 
-.button-icon:hover {
-    background-color: #e0e0e0;
+.open-button:hover {
+    background-color: #c5c5c5;
+    color: #007BFF;
+}
+
+.close-button {
+    font-size: 35px;
+    background: #4d4d4d;
+    color: #c5c5c5;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 5px 15px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.close-button:hover {
+    background-color: #000000;
     color: #007BFF;
 }
 
@@ -102,6 +118,7 @@
     text-decoration: none;
     font-size: 20px;
     color: white;
+    cursor: pointer;
     display: block;
     padding: 15px 0;
     padding-left: 30px;

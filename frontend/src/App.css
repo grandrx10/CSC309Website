@@ -1,38 +1,135 @@
 .App {
-  text-align: center;
+    text-align: center;
 }
 
 .App-logo {
-  height: 40vmin;
-  pointer-events: none;
+    height: 40vmin;
+    pointer-events: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+    .App-logo {
+        animation: App-logo-spin infinite 20s linear;
+    }
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+    background-color: #282c34;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(10px + 2vmin);
+    color: white;
 }
 
 .App-link {
-  color: #61dafb;
+    color: #61dafb;
 }
 
 @keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.main-content {
+    transition: margin-left 0.5s ease;
+    padding: 20px;
+}
+
+.navbar {
+    height: 100%;
+    width: 25%;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #232323;
+    transition: .5s ease;
+    overflow-x: hidden;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.button-icon {
+    font-size: 35px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 10px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.button-icon:hover {
+    background-color: #e0e0e0;
+    color: #007BFF;
+}
+
+.navbar.open {
+    left: 0;
+}
+
+.navbar-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.navbar-menu {
+    list-style-type: none;
+    padding: 0;
+    width: 100%;
+}
+
+.navbar-menu li {
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+.navbar-menu li button {
+    width: 100%;
+    text-align: left;
+    text-decoration: none;
+    font-size: 20px;
+    color: white;
+    display: block;
+    padding: 15px 0;
+    padding-left: 30px;
+    transition: background-color 0.3s;
+    border: none;
+    background-color: transparent;
+    position: relative;
+}
+
+.navbar-menu li button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5px;
+    height: 100%;
+    background-color: transparent;
+    transition: background-color 0.3s;
+}
+
+.navbar-menu li button:hover {
+    background-color: #575757;
+}
+
+.navbar-menu li button:hover::before {
+    background-color: white;
+}
+
+.navbar-menu .log-out {
+    color: red;
 }

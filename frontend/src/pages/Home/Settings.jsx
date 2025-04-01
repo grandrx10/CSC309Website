@@ -1,17 +1,17 @@
 import React from 'react';
 import NavBar from '../../components/NavBar';
 
-const Home = () => {
+const Settings = () => {
   return (
     <div>
       <NavBar>
-        <div class="home">
-            <h1>Dashboard</h1>
-            <p>Put dashboard content here.</p>
+        <div class="settings">
+            <h1>Settings</h1>
+            <p>Put settings here.</p>
         </div>
       </NavBar>
     </div>
   );
 };
 
-export default Home;
+export default Settings;

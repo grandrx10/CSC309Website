@@ -1,17 +1,17 @@
 import React from 'react';
 import NavBar from '../../components/NavBar';
 
-const Home = () => {
+const Events = () => {
   return (
     <div>
       <NavBar>
-        <div class="home">
-            <h1>Dashboard</h1>
-            <p>Put dashboard content here.</p>
+        <div class="events">
+            <h1>Events</h1>
+            <p>Placeholder for events list.</p>
         </div>
       </NavBar>
     </div>
   );
 };
 
-export default Home;
+export default Events;

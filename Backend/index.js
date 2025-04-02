@@ -1569,6 +1569,9 @@ app.post('/events', authenticateUser, isManagerOrHigher, async (req, res) => {
         capacity,
         points,
     } = req.body;
+
+    console.log("posting an event.");
+    console.log(req.body);
     // Validate required fields
     if (!name || !description || !location || !startTime || !endTime || !points) {
         return res.status(400).json({ error: 'name, description, location, startTime, endTime, and points are required' });
@@ -1752,7 +1755,6 @@ app.get('/events', authenticateUser, async (req, res) => {
 
             return baseResponse;
         });
-
         // Return the response
         res.status(200).json({
             count,

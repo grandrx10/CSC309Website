@@ -36,15 +36,20 @@ const EventsList = () => {
       const params = new URLSearchParams({
         page: pagination.current,
         limit: pagination.pageSize,
-        search: filters.search,
-        status: filters.status,
-        sortBy: filters.sortBy,
+        name: filters.search,  // Changed from 'search' to 'name'
+        published: filters.status === 'published' ? 'true' : 
+            filters.status === 'draft' ? 'false' : 
+            undefined, // Omit for 'all'
+        started: filters.dateRange?.[0]?.toISOString(), // Start of date range
+        ended: filters.dateRange?.[1]?.toISOString(),   // End of date range
+        showFull: 'false' // Default value from backend
       });
-  
-      if (filters.dateRange) {
-        params.append('startDate', filters.dateRange[0].toISOString());
-        params.append('endDate', filters.dateRange[1].toISOString());
-      }
+
+      Array.from(params.keys()).forEach(key => {
+        if (params.get(key) === 'undefined' || params.get(key) === 'null') {
+          params.delete(key);
+        }
+      });
   
       const response = await fetch(`http://localhost:3100/events?${params.toString()}`, {
         headers: {
@@ -196,16 +201,6 @@ const EventsList = () => {
           showTime
           onChange={(dates) => setFilters({ ...filters, dateRange: dates })}
         />
-
-        <Select
-          defaultValue="startTime"
-          style={{ width: 180 }}
-          onChange={(value) => setFilters({ ...filters, sortBy: value })}
-        >
-          <Option value="startTime">Sort by Start Time</Option>
-          <Option value="name">Sort by Name</Option>
-          <Option value="points">Sort by Points</Option>
-        </Select>
       </div>
 
       <Table

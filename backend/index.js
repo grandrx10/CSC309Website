@@ -30,9 +30,10 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const cors = require("cors");
+const e = require("express");
 app.use(cors({
     origin: "http://localhost:3000", // Specify your frontend URL here
-    methods: "GET,POST,PUT,DELETE,PATCH", // Add PATCH to allowed methods
+    methods: "GET,POST,PUT,DELETE,PATCH", // Allow methods
     credentials: true, // Allow credentials (cookies, etc.)
 }));
 
@@ -1569,6 +1570,9 @@ app.post('/events', authenticateUser, isManagerOrHigher, async (req, res) => {
         capacity,
         points,
     } = req.body;
+
+    console.log("posting an event.");
+    console.log(req.body);
     // Validate required fields
     if (!name || !description || !location || !startTime || !endTime || !points) {
         return res.status(400).json({ error: 'name, description, location, startTime, endTime, and points are required' });
@@ -1652,7 +1656,6 @@ app.get('/events', authenticateUser, async (req, res) => {
         limit = 10,
     } = req.query; // Use req.query for GET requests
     const role  = req.user.role.toUpperCase(); // Get the user's role from authentication
-
     // Validate query parameters
     if (started != null && ended != null) {
         return res.status(400).json({ error: 'cannot specify both started and ended' });
@@ -1675,12 +1678,12 @@ app.get('/events', authenticateUser, async (req, res) => {
 
         // Filter by name
         if (name) {
-            filter.name = { contains: name, mode: 'insensitive' };
+            filter.name = { contains: name };
         }
 
         // Filter by location
         if (location) {
-            filter.location = { contains: location, mode: 'insensitive' };
+            filter.location = { contains: location };
         }
 
         // Filter by started
@@ -1752,7 +1755,6 @@ app.get('/events', authenticateUser, async (req, res) => {
 
             return baseResponse;
         });
-
         // Return the response
         res.status(200).json({
             count,
@@ -1766,15 +1768,17 @@ app.get('/events', authenticateUser, async (req, res) => {
 });
 app.get('/events/:eventId', authenticateUser, async (req, res) => {
     const { eventId } = req.params;
-    const { role, utorid } = req.user; // Get the user's role and UTORid from authentication
+    const { role, utorid } = req.user;
     const parsedEventId = parseInt(eventId);
+    
     if (isNaN(parsedEventId)) {
         return res.status(400).json({ error: 'Invalid event ID' });
     }
+
     try {
-        // Fetch the event with organizers and guests
+        // Fetch the event with organizers and guests (now selecting specific guest fields)
         const event = await prisma.event.findUnique({
-            where: { id: parseInt(parsedEventId) },
+            where: { id: parsedEventId },
             include: {
                 organizers: {
                     select: {
@@ -1783,65 +1787,56 @@ app.get('/events/:eventId', authenticateUser, async (req, res) => {
                         name: true,
                     },
                 },
-                guests: true, // Include guests to calculate numGuests
+                guests: {
+                    select: {
+                        id: true,
+                        utorid: true,
+                        name: true,  // Explicitly include name
+                        // Add any other guest fields you need
+                    }
+                },
             },
         });
 
-        // Check if the event exists
         if (!event) {
-            return res.status(404).json({ error: 'event not found' });
+            return res.status(404).json({ error: 'Event not found' });
         }
 
-        // Check if the user is a manager or higher
+        // Check permissions
         const isManagerOrHigher = ['MANAGER', 'SUPERUSER'].includes(role.toUpperCase());
+        const isOrganizer = event.organizers.some(org => org.utorid === utorid);
 
-        // Check if the user is an organizer of the event
-        const isOrganizer = event.organizers.some(organizer => organizer.utorid === utorid);
-
-        // Regular users cannot see unpublished events
         if (['REGULAR', 'CASHIER'].includes(role) && !event.published) {
-            return res.status(404).json({ error: 'event not found' });
+            return res.status(404).json({ error: 'Event not found' });
         }
 
-        // Format the response based on the user's role and access
-        let response;
-        if (isManagerOrHigher || isOrganizer) {
-            // Managers, superusers, or organizers can see all details
-            response = {
-                id: event.id,
-                name: event.name,
-                description: event.description,
-                location: event.location,
-                startTime: event.startTime.toISOString(),
-                endTime: event.endTime.toISOString(),
-                capacity: event.capacity,
-                pointsRemain: event.pointsRemain,
-                pointsAwarded: event.pointsAwarded,
-                published: event.published,
-                organizers: event.organizers,
-                guests: event.guests, // Include full guest list for managers/organizers
-            };
-        } else {
-            // Regular users can only see limited details
-            response = {
-                id: event.id,
-                name: event.name,
-                description: event.description,
-                location: event.location,
-                startTime: event.startTime.toISOString(),
-                endTime: event.endTime.toISOString(),
-                capacity: event.capacity,
-                organizers: event.organizers,
-                numGuests: event.guests.length, // Only show the number of guests
-            };
-        }
-
-        // Return the response
+        // Format response with proper guest names
+        const response = {
+            id: event.id,
+            name: event.name,
+            description: event.description,
+            location: event.location,
+            startTime: event.startTime.toISOString(),
+            endTime: event.endTime.toISOString(),
+            capacity: event.capacity,
+            pointsRemain: isManagerOrHigher || isOrganizer ? event.pointsRemain : undefined,
+            pointsAwarded: isManagerOrHigher || isOrganizer ? event.pointsAwarded : undefined,
+            published: isManagerOrHigher || isOrganizer ? event.published : undefined,
+            organizers: event.organizers,
+            guests: isManagerOrHigher || isOrganizer ? 
+                event.guests.map(g => ({
+                    ...g,
+                    name: g.name || 'Guest' // Fallback for missing names
+                })) : 
+                undefined,
+            numGuests: event.guests.length
+        };
+        console.log(response)
         res.status(200).json(response);
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'internal server error' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -2218,6 +2213,7 @@ app.post('/events/:eventId/guests/me', authenticateUser, isRegularOrHigher, asyn
     const userUtorid = req.user.utorid; // Assuming the user's UTORid is stored in the token
     const userName = req.user.name; // Assuming the user's name is stored in the token
     const parsedEventId = parseInt(eventId);
+
     if (isNaN(parsedEventId)) {
         return res.status(400).json({ error: 'Invalid event ID' });
     }
@@ -2318,6 +2314,7 @@ app.post('/events/:eventId/guests', authenticateUser, async (req, res) => {
 
         // Check if the event exists
         if (!existingEvent) {
+            console.log("EVENT NOT EXIST.")
             return res.status(404).json({ error: 'event not found' });
         }
 
@@ -2331,9 +2328,9 @@ app.post('/events/:eventId/guests', authenticateUser, async (req, res) => {
         if (!isManagerOrHigher && !isOrganizer) {
             return res.status(403).json({ error: 'access denied' });
         }
-
         // Check if the event is visible to the organizer
         if (!existingEvent.published && !isManagerOrHigher) {
+            console.log("NOT VISIBLE TO ORGANIZER YET?")
             return res.status(404).json({ error: 'event is not visible to the organizer yet' });
         }
 
@@ -2346,7 +2343,6 @@ app.post('/events/:eventId/guests', authenticateUser, async (req, res) => {
         if (existingEvent.capacity !== null && existingEvent.guests.length >= existingEvent.capacity) {
             return res.status(410).json({ error: 'event is full' });
         }
-
         // Check if the user is already an organizer of the event
         const isAlreadyOrganizer = existingEvent.organizers.some(organizer => organizer.utorid === utorid);
         if (isAlreadyOrganizer) {
@@ -2364,14 +2360,15 @@ app.post('/events/:eventId/guests', authenticateUser, async (req, res) => {
         });
 
         if (!user) {
+            console.log("user not found");
             return res.status(404).json({ error: 'user not found' });
         }
-
         // Add the user as a guest
         await prisma.eventGuest.create({
             data: {
                 eventId: parseInt(eventId),
                 utorid: user.utorid,
+                name: user.name
             },
         });
 
@@ -2401,7 +2398,6 @@ app.post('/events/:eventId/guests', authenticateUser, async (req, res) => {
             },
             numGuests: updatedEvent.guests.length,
         };
-
         // Return the response
         res.status(201).json(response);
 

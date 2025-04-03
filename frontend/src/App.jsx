@@ -4,8 +4,9 @@ import SignIn from './pages/Signin/Signin';
 import Home from './pages/Home/Home';
 import Events from './pages/Features/Events';
 
-import Event from './pages/Events/Event';
-import EventsList from './pages/Events/EventsList'
+import Event from './components/Events/Event/Event';
+import EditEvent from './components/Events/Event/EditEvent';
+import EventsView from './components/Events/EventsList/EventsView'
 import CreateEvent from './pages/Events/CreateEvent';
 import Promotions from './pages/Features/Promotions';
 import Transactions from './pages/Features/Transactions/Transactions';
@@ -19,12 +20,10 @@ function App() {
       <Routes>
         <Route path="/" element={<SignIn />} />
         <Route path="/home" element={<Home />}/>
-        <Route path="/events" element={<EventsList />} />
+        <Route path="/events" element={<EventsView />} />
         <Route path="/events/create" element={<CreateEvent />} />
-
+        <Route path="/events/:eventId/edit" element={<EditEvent />} />
         <Route path="/events/:eventId" element={<Event />} />
-        <Route path="/events/:eventId/edit" element={<Event editMode={true} />} />
-        <Route path="/events/:eventId/users" element={<Event showUsers={true} />} />
 
 
         <Route path="/promotions" element={<Promotions />} />

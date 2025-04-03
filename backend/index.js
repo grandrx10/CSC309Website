@@ -392,8 +392,7 @@ app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avata
 
 app.get('/users/me', authenticateUser, isRegularOrHigher, async (req, res) => {
     const userId = req.user.userId; // Assuming authentication middleware attaches the user ID
-  
-    try {
+    try {   
       // Find the user
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -642,7 +641,6 @@ app.patch('/users/:userId', authenticateUser, isManagerOrHigher, async (req, res
                 ...(role !== null && { role: true }),
             },
         });
-        console.log(updatedUser);
 
         return res.status(200).json(updatedUser);
     } catch (err) {
@@ -974,9 +972,6 @@ app.post('/transactions', authenticateUser, async (req, res) => {
             promotionIds: (transaction.promotions || []).map(p => p.id), // Handle undefined case
             createdBy: transaction.createdBy,
         };
-        // console.log("transaction response:")
-        // console.log(response)
-        // console.log(response);
         res.status(201).json(response);
     } catch (err) {
         console.error(err);
@@ -1403,10 +1398,10 @@ app.post('/users/:userId/transactions', authenticateUser, isRegularOrHigher, asy
         }
 
         // Check if the sender has enough points
-        console.log("Sender Points:");
-        console.log(sender.points);
-        console.log("Current amount requested: ");
-        console.log(amount);
+        // console.log("Sender Points:");
+        // console.log(sender.points);
+        // console.log("Current amount requested: ");
+        // console.log(amount);
         if (sender.points < amount) {
             console.log("Not enough points");
         return res.status(400).json({ error: 'sender does not have enough points' });
@@ -1571,8 +1566,8 @@ app.post('/events', authenticateUser, isManagerOrHigher, async (req, res) => {
         points,
     } = req.body;
 
-    console.log("posting an event.");
-    console.log(req.body);
+    // console.log("posting an event.");
+    // console.log(req.body);
     // Validate required fields
     if (!name || !description || !location || !startTime || !endTime || !points) {
         return res.status(400).json({ error: 'name, description, location, startTime, endTime, and points are required' });
@@ -1655,6 +1650,8 @@ app.get('/events', authenticateUser, async (req, res) => {
         page = 1,
         limit = 10,
     } = req.query; // Use req.query for GET requests
+
+    // console.log(req.query);
     const role  = req.user.role.toUpperCase(); // Get the user's role from authentication
     // Validate query parameters
     if (started != null && ended != null) {
@@ -2291,7 +2288,7 @@ app.post('/events/:eventId/guests', authenticateUser, async (req, res) => {
     const { utorid } = req.body;
     const userRole = req.user.role; // Assuming the user's role is stored in the token
     const userUtorid = req.user.utorid; // Assuming the user's UTORid is stored in the token
-
+    console.log(eventId)
     if (isNaN(parseInt(eventId))) {
         return res.status(400).json({ error: 'Invalid event ID' });
     }
@@ -2398,6 +2395,7 @@ app.post('/events/:eventId/guests', authenticateUser, async (req, res) => {
             },
             numGuests: updatedEvent.guests.length,
         };
+        console.log(response)
         // Return the response
         res.status(201).json(response);
 

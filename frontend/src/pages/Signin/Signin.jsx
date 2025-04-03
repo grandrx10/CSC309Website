@@ -32,7 +32,7 @@ function SignIn() {
       localStorage.setItem('authToken', data.token);
       
       // Redirect to home page
-      navigate('/home');
+      navigate('/events');
       
       setError(""); // Clear errors on success
     } catch (err) {

@@ -35,7 +35,7 @@ app.use(cors({
     origin: "http://localhost:3000", // Specify your frontend URL here
     methods: "GET,POST,PUT,DELETE,PATCH", // Allow methods
     credentials: true, // Allow credentials (cookies, etc.)
-  }));
+}));
 
 // For keeping track of last request
 const requestTimestamps = {};

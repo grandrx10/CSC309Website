@@ -7,13 +7,24 @@ import EventsFilters from './EventsFilters';
 import styles from './EventsList.module.css';
 import dayjs from 'dayjs';
 
+const isUserOrganizer = (event, userUtorid) => {
+  if (!event.organizers || !userUtorid) return false;
+  
+  console.log(event)
+  console.log(userUtorid)
+
+  return event.organizers.some(organizer => 
+    organizer.utorid === userUtorid
+  );
+};
+
 const EventsView = ({
   variant = 'user',
   title = 'Events',
   columns,
   initialFilters = {}
 }) => {
-  const navigate = useNavigate(); // Add this hook
+  const navigate = useNavigate();
   const [state, setState] = useState({
     events: [],
     loading: false,
@@ -33,7 +44,9 @@ const EventsView = ({
     showStatusFilter: false,
     showPointsColumn: false,
     showOrganizerFilter: false
-  });const fetchCurrentUser = useCallback(async () => {
+  });
+
+  const fetchCurrentUser = useCallback(async () => {
     try {
       setUserLoading(true);
       const token = localStorage.getItem('authToken');
@@ -64,7 +77,7 @@ const EventsView = ({
         showCreateButton: isPrivileged,
         showStatusFilter: isPrivileged,
         showPointsColumn: isPrivileged,
-        showOrganizerFilter: true // Show organizer filter for all logged-in users
+        showOrganizerFilter: true
       });
       setUserLoading(false);
     } catch (error) {
@@ -79,45 +92,36 @@ const EventsView = ({
       await fetchCurrentUser();
       return;
     }
-
+  
     setState(prev => ({ ...prev, loading: true }));
     try {
       const token = localStorage.getItem('authToken');
       if (!token) throw new Error('No authentication token found');
-
+  
       const params = new URLSearchParams({
         page: state.pagination.current,
         limit: state.pagination.pageSize,
         name: state.filters.search,
-        ...(showSettings.showStatusFilter && { 
-          published: state.filters.status === 'published' ? 'true' : 
-                   state.filters.status === 'draft' ? 'false' : 
-                   undefined 
-        }),
         ...(state.filters.dateRange && {
           started: state.filters.dateRange[0]?.toISOString(),
           ended: state.filters.dateRange[1]?.toISOString()
         })
       });
-
-      // Add organizer filter if active
-      if (state.filters.organizerOnly && user) {
-        params.set('organizerId', user.id);
+  
+      // Only add published filter when specifically choosing published/draft
+      if (state.filters.status === 'published' || state.filters.status === 'draft') {
+        params.set('published', state.filters.status === 'published');
       }
-
-      // Clean up undefined parameters
-      Array.from(params.keys()).forEach(key => {
-        if (params.get(key) === 'undefined' || params.get(key) === 'null') {
-          params.delete(key);
-        }
-      });
-
+  
+      // Always do client-side filtering for organizers
+      // (since your backend might not support organizer filtering)
       const response = await fetch(`http://localhost:3100/events?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+  
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -130,13 +134,28 @@ const EventsView = ({
       }
 
       const { count, results } = await response.json();
-      
-      setState(prev => ({
-        ...prev,
-        events: results,
-        pagination: { ...prev.pagination, total: count },
-        loading: false
-      }));
+    
+    // Apply organizer filter if enabled
+    let filteredEvents = results;
+    let filteredCount = count;
+    
+    if (state.filters.organizerOnly && user) {
+      filteredEvents = results.filter(event => isUserOrganizer(event, user.utorid));
+      filteredCount = filteredEvents.length;
+    }
+
+    setState(prev => ({
+      ...prev,
+      events: filteredEvents,
+      pagination: { 
+        ...prev.pagination, 
+        total: filteredCount,
+        current: filteredCount < (prev.pagination.current - 1) * prev.pagination.pageSize 
+          ? 1 
+          : prev.pagination.current
+      },
+      loading: false
+    }));
 
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -172,7 +191,6 @@ const EventsView = ({
     }));
   };
 
-  // Memoized columns to prevent unnecessary recalculations
   const defaultColumns = useMemo(() => [
     {
       title: 'Event Name',
@@ -181,6 +199,12 @@ const EventsView = ({
       render: (text, record) => (
         <a onClick={() => navigate(`/events/${record.id}`)}>{text}</a>
       ),
+    },
+    {
+      title: 'Organizers',
+      dataIndex: 'organizers',
+      key: 'organizers',
+      render: (organizers) => organizers?.map(o => o.name).join(', ') || 'None',
     },
     {
       title: 'Location',
@@ -247,20 +271,21 @@ const EventsView = ({
 
       <EventsFilters 
         showStatusFilter={showSettings.showStatusFilter}
-        showOrganizerFilter={showSettings.showOrganizerFilter}
+        showOrganizerFilter={showSettings.showOrganizerFilter && !!user}
         isOrganizerFilterActive={state.filters.organizerOnly}
         filters={state.filters} 
         onFilterChange={handleFilterChange} 
       />
 
-        <EventsTable
+      <EventsTable
         events={state.events}
         loading={state.loading}
         onRowClick={(id) => navigate(`/events/${id}`)}
         showPointsColumn={showSettings.showPointsColumn}
         showStatusColumn={showSettings.showStatusFilter}
-        showActionsColumn={showSettings.showCreateButton} // Or create a separate setting for actions
-        />
+        showActionsColumn={showSettings.showCreateButton}
+        columns={columns || defaultColumns}
+      />
 
       <Pagination
         current={state.pagination.current}

@@ -1724,6 +1724,13 @@ app.get('/events', authenticateUser, async (req, res) => {
             take: parseInt(limit),
             include: {
                 guests: true, // Include guests to calculate numGuests
+                organizers: {  // Add this
+                    select: {
+                        id: true,
+                        utorid: true,
+                        name: true
+                    }
+                }
             },
         });
 
@@ -1741,6 +1748,7 @@ app.get('/events', authenticateUser, async (req, res) => {
                 endTime: event.endTime.toISOString(),
                 capacity: event.capacity,
                 numGuests: event.guests.length,
+                organizers: event.organizers,  // Add this line
             };
 
             // Add additional fields for MANAGER or higher
@@ -1752,6 +1760,7 @@ app.get('/events', authenticateUser, async (req, res) => {
 
             return baseResponse;
         });
+        console.log(results);
         // Return the response
         res.status(200).json({
             count,
@@ -1767,7 +1776,7 @@ app.get('/events/:eventId', authenticateUser, async (req, res) => {
     const { eventId } = req.params;
     const { role, utorid } = req.user;
     const parsedEventId = parseInt(eventId);
-    
+    // console.log("GETTING CALLED")
     if (isNaN(parsedEventId)) {
         return res.status(400).json({ error: 'Invalid event ID' });
     }
@@ -1828,7 +1837,8 @@ app.get('/events/:eventId', authenticateUser, async (req, res) => {
                 undefined,
             numGuests: event.guests.length
         };
-        console.log(response)
+        // console.log("Calling get events :P")
+        // console.log(response)
         res.status(200).json(response);
 
     } catch (error) {
@@ -2581,7 +2591,7 @@ app.post('/promotions', authenticateUser, isManagerOrHigher, async (req, res) =>
         rate,
         points,
     } = req.body;
-    console.log(req.body)
+    // console.log(req.body)
     try {
         // Validate required fields
         if (name == null || description == null || type == null || startTime == null || endTime == null) {

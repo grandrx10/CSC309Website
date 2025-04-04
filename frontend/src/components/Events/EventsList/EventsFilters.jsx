@@ -1,4 +1,4 @@
-import { Input, Select, DatePicker, Space, Button } from 'antd';
+import { Input, Select, DatePicker, Space, Checkbox } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import styles from './EventsList.module.css';
 
@@ -15,41 +15,46 @@ const EventsFilters = ({
 }) => {
   return (
     <div className={styles.filters}>
-      <Search
-        placeholder="Search events"
-        allowClear
-        enterButton={<SearchOutlined />}
-        size="large"
-        onSearch={(value) => onFilterChange('search', value)}
-        className={styles.search}
-      />
+      <Space size="middle" align="center">
+        <Search
+          placeholder="Search events"
+          allowClear
+          enterButton={<SearchOutlined />}
+          size="large"
+          onSearch={(value) => onFilterChange('search', value)}
+          className={styles.search}
+        />
 
-      {showStatusFilter && (
-        <Select
-          value={filters.status}
-          style={{ width: 120 }}
-          onChange={(value) => onFilterChange('status', value)}
-        >
-          <Option value="all">All Status</Option>
-          <Option value="published">Published</Option>
-          <Option value="draft">Draft</Option>
-        </Select>
-      )}
+        {showStatusFilter && (
+          <Select
+            value={filters.status}
+            style={{ width: 120 }}
+            onChange={(value) => onFilterChange('status', value)}
+          >
+            <Option value="all">All Status</Option>
+            <Option value="published">Published</Option>
+            <Option value="draft">Draft</Option>
+          </Select>
+        )}
 
-      <RangePicker
-        showTime
-        value={filters.dateRange}
-        onChange={(dates) => onFilterChange('dateRange', dates)}
-      />
+        <RangePicker
+          showTime
+          value={filters.dateRange}
+          onChange={(dates) => onFilterChange('dateRange', dates)}
+        />
 
-      {showOrganizerFilter && (
-        <Button
-          type={isOrganizerFilterActive ? "primary" : "default"}
-          onClick={() => onFilterChange('organizerOnly', !filters.organizerOnly)}
-        >
-          My Events Only
-        </Button>
-      )}
+        {showOrganizerFilter && (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Checkbox
+              checked={isOrganizerFilterActive}
+              onChange={(e) => onFilterChange('organizerOnly', e.target.checked)}
+              style={{ lineHeight: '32px' }}
+            >
+              Events I'm Organizing
+            </Checkbox>
+          </div>
+        )}
+      </Space>
     </div>
   );
 };

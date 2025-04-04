@@ -8,11 +8,12 @@ import styles from './EventsList.module.css';
 import dayjs from 'dayjs';
 
 const EventsView = ({
-  variant = 'user', // 'user' | 'organizer' | 'manager'
+  variant = 'user',
   title = 'Events',
-  columns, // Custom columns override
+  columns,
   initialFilters = {}
 }) => {
+  const navigate = useNavigate(); // Add this hook
   const [state, setState] = useState({
     events: [],
     loading: false,
@@ -21,6 +22,7 @@ const EventsView = ({
       search: '', 
       status: 'all', 
       dateRange: null,
+      organizerOnly: false,
       ...initialFilters
     }
   });
@@ -29,13 +31,9 @@ const EventsView = ({
   const [showSettings, setShowSettings] = useState({
     showCreateButton: false,
     showStatusFilter: false,
-    showPointsColumn: false
-  });
-
-  const navigate = useNavigate();
-
-  // Fetch current user
-  const fetchCurrentUser = useCallback(async () => {
+    showPointsColumn: false,
+    showOrganizerFilter: false
+  });const fetchCurrentUser = useCallback(async () => {
     try {
       setUserLoading(true);
       const token = localStorage.getItem('authToken');
@@ -65,7 +63,8 @@ const EventsView = ({
       setShowSettings({
         showCreateButton: isPrivileged,
         showStatusFilter: isPrivileged,
-        showPointsColumn: isPrivileged
+        showPointsColumn: isPrivileged,
+        showOrganizerFilter: true // Show organizer filter for all logged-in users
       });
       setUserLoading(false);
     } catch (error) {
@@ -101,17 +100,17 @@ const EventsView = ({
         })
       });
 
+      // Add organizer filter if active
+      if (state.filters.organizerOnly && user) {
+        params.set('organizerId', user.id);
+      }
+
       // Clean up undefined parameters
       Array.from(params.keys()).forEach(key => {
         if (params.get(key) === 'undefined' || params.get(key) === 'null') {
           params.delete(key);
         }
       });
-
-      // Add role-specific filters
-      if (variant === 'organizer' && user) {
-        params.set('organizerId', user.id);
-      }
 
       const response = await fetch(`http://localhost:3100/events?${params.toString()}`, {
         headers: {
@@ -248,6 +247,8 @@ const EventsView = ({
 
       <EventsFilters 
         showStatusFilter={showSettings.showStatusFilter}
+        showOrganizerFilter={showSettings.showOrganizerFilter}
+        isOrganizerFilterActive={state.filters.organizerOnly}
         filters={state.filters} 
         onFilterChange={handleFilterChange} 
       />

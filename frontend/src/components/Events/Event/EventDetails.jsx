@@ -3,8 +3,10 @@ import dayjs from 'dayjs';
 import PageHeader from '../Shared/PageHeader';
 import ActionButtons from '../Shared/ActionButtons';
 import EventGuests from './EventGuests';
+import { useNavigate } from 'react-router-dom'; // Add this import
 
 const EventDetails = ({ event, onEdit, onDelete }) => {
+    const navigate = useNavigate(); // Add this hook
   return (
     <div style={{ padding: '24px' }}>
       <Card
@@ -19,7 +21,7 @@ const EventDetails = ({ event, onEdit, onDelete }) => {
         <div style={{ padding: '24px 24px 0 24px' }}>
           <PageHeader 
             title={event.name}
-            onBack={() => window.history.back()}
+            onBack={() => navigate('/events')}
             extra={
               <ActionButtons
                 onEdit={onEdit}

@@ -156,3 +156,13 @@
 .navbar-menu .log-out {
     color: red;
 }
+
+.transfer-failed {
+    color: #9b0024;
+    font-weight: bold;
+}
+
+.transfer-success {
+    color: #005b15;
+    font-weight: bold;
+}

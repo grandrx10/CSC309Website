@@ -2,11 +2,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import SignIn from './pages/Signin/Signin';
 import Home from './pages/Home/Home';
-import Events from './pages/Features/Events';
-
 import Event from './components/Events/Event/Event';
 import EditEvent from './components/Events/Event/EditEvent';
-import EventsView from './components/Events/EventsList/EventsView'
+import EventsView from './components/Events/EventsList/EventsView';
 import CreateEvent from './pages/Events/CreateEvent';
 import Promotions from './pages/Features/Promotions';
 import Transactions from './pages/Features/Transactions/Transactions';

@@ -104,7 +104,6 @@ const Transfer = () => {
                         <SuccessMessage 
                             amount={result.amount} 
                             userId={result.userId} 
-                            points={result.points} 
                         />
                     )}
                     {result && !result.success && (

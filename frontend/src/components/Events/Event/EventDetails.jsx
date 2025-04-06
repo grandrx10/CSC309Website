@@ -3,10 +3,38 @@ import dayjs from 'dayjs';
 import PageHeader from '../Shared/PageHeader';
 import ActionButtons from '../Shared/ActionButtons';
 import EventGuests from './EventGuests';
-import { useNavigate } from 'react-router-dom'; // Add this import
+import { useNavigate } from 'react-router-dom';
 
-const EventDetails = ({ event, onEdit, onDelete }) => {
-    const navigate = useNavigate(); // Add this hook
+const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus, currentUser }) => {
+  const navigate = useNavigate();
+  
+  // Check if delete button should be shown
+  const showDeleteButton = () => {
+    // Don't show if no delete handler provided
+    if (!onDelete) return false;
+    
+    // Don't show for published events
+    if (event.published) return false;
+    
+    // Only show for managers/superusers
+    return ['manager', 'superuser'].includes(currentUser?.role.toLowerCase());
+  };
+
+  // Check if edit button should be shown
+  const showEditButton = () => {
+    // Don't show if no edit handler provided
+    if (!onEdit) return false;
+    // Show for managers/superusers regardless of ownership
+    if (['manager', 'superuser'].includes(currentUser?.role.toLowerCase())) {
+      return true;
+    }
+    
+    // Show for the event organizer (assuming event.organizerId exists and matches currentUser.id)
+    return event.organizers && event.organizers.some(organizer => 
+      organizer.utorid === currentUser?.utorid
+    );
+  };
+  console.log(showEditButton())
   return (
     <div style={{ padding: '24px' }}>
       <Card
@@ -23,10 +51,12 @@ const EventDetails = ({ event, onEdit, onDelete }) => {
             title={event.name}
             onBack={() => navigate('/events')}
             extra={
-              <ActionButtons
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
+              (showEditButton() || showDeleteButton()) && (
+                <ActionButtons
+                  onEdit={showEditButton() ? onEdit : null}
+                  onDelete={showDeleteButton() ? onDelete : null}
+                />
+              )
             }
           />
         </div>
@@ -39,19 +69,26 @@ const EventDetails = ({ event, onEdit, onDelete }) => {
               {dayjs(event.startTime).format('MMM D, YYYY h:mm A')} - 
               {dayjs(event.endTime).format('h:mm A')}
             </Descriptions.Item>
-            <Descriptions.Item label="Status">
-              <span style={{ 
-                color: event.published ? '#389e0d' : '#d48806',
-                fontWeight: 500
-              }}>
-                {event.published ? 'Published' : 'Draft'}
-              </span>
-            </Descriptions.Item>
+            {showStatus && (
+              <Descriptions.Item label="Status">
+                <span style={{ 
+                  color: event.published ? '#389e0d' : '#d48806',
+                  fontWeight: 500
+                }}>
+                  {event.published ? 'Published' : 'Draft'}
+                </span>
+              </Descriptions.Item>
+            )}
           </Descriptions>
         </div>
       </Card>
 
-      <EventGuests eventId={event.id} />
+      {showGuestManagement && (
+        <EventGuests 
+          eventId={event.id} 
+          canManageGuests={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
+        />
+      )}
     </div>
   );
 };

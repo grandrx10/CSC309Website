@@ -1851,7 +1851,8 @@ app.patch('/events/:eventId', authenticateUser, async (req, res) => {
     const { eventId } = req.params;
     const userRole = req.user.role;
     const userUtorid = req.user.utorid;
-    const { name, description, location, startTime, endTime, capacity, points, published } = req.body;
+    let { name, description, location, startTime, endTime, capacity, points, published } = req.body;
+    // In your PATCH /events/:id endpoint
 
     try {
         const eventIdInt = parseInt(eventId, 10);
@@ -1866,7 +1867,16 @@ app.patch('/events/:eventId', authenticateUser, async (req, res) => {
 
         const isManagerOrHigher = ['MANAGER', 'SUPERUSER'].includes(userRole.toUpperCase());
         const isOrganizer = existingEvent.organizers.some(org => org.utorid === userUtorid);
+        
+
+
         if (!isManagerOrHigher && !isOrganizer) return res.status(403).json({ error: 'access denied' });
+
+        if (!isManagerOrHigher) {
+            // Remove restricted fields if not manager/superuser
+            published = null;
+            points = null;
+        }
 
         const now = new Date();
 

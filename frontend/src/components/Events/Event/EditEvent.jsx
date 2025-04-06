@@ -11,6 +11,7 @@ const EditEvent = () => {
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   const [form] = Form.useForm();
 
   // Fetch event data
@@ -18,33 +19,55 @@ const EditEvent = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}`, {
+      
+      // Get current user info
+      const userResponse = await fetch('http://localhost:3100/users/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!userResponse.ok) {
+        if (userResponse.status === 401) navigate('/login');
+        throw new Error('Failed to fetch user information');
+      }
+      
+      const userData = await userResponse.json();
+      setCurrentUser(userData);
+      
+      // Get event data
+      const eventResponse = await fetch(`http://localhost:3100/events/${eventId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (!response.ok) {
-        if (response.status === 401) navigate('/login');
+      if (!eventResponse.ok) {
+        if (eventResponse.status === 401) navigate('/login');
         throw new Error('Failed to fetch event');
       }
 
-      const data = await response.json();
-      setEvent(data);
+      const eventData = await eventResponse.json();
+      setEvent(eventData);
       form.setFieldsValue({
-        name: data.name,
-        description: data.description,
-        location: data.location,
-        dateRange: [dayjs(data.startTime), dayjs(data.endTime)],
-        capacity: data.capacity,
-        points: data.pointsAwarded,
-        published: data.published
+        name: eventData.name,
+        description: eventData.description,
+        location: eventData.location,
+        dateRange: [dayjs(eventData.startTime), dayjs(eventData.endTime)],
+        capacity: eventData.capacity,
+        points: eventData.pointsAwarded,
+        published: eventData.published
       });
     } catch (error) {
       message.error(error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check if user is a manager or superuser
+  const isManagerOrSuperuser = () => {
+    return currentUser?.role && ['manager', 'superuser'].includes(currentUser.role.toLowerCase());
   };
 
   // Update event
@@ -57,6 +80,13 @@ const EditEvent = () => {
         endTime: values.dateRange[1].toISOString()
       };
       delete payload.dateRange;
+
+      // If user is not manager/superuser, ensure we don't modify restricted fields
+      if (!isManagerOrSuperuser()) {
+        // Preserve original values for restricted fields
+        payload.pointsAwarded = event.pointsAwarded;
+        payload.published = event.published;
+      }
 
       const response = await fetch(`http://localhost:3100/events/${eventId}`, {
         method: 'PATCH',
@@ -140,20 +170,26 @@ const EditEvent = () => {
           <InputNumber min={1} style={{ width: '100%' }} />
         </Form.Item>
 
-        <Form.Item
-          name="points"
-          label="Points Awarded"
-        >
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
+        {/* Only show Points field for managers/superusers */}
+        {isManagerOrSuperuser() && (
+          <Form.Item
+            name="points"
+            label="Points Awarded"
+          >
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+        )}
 
-        <Form.Item
-          name="published"
-          label="Published"
-          valuePropName="checked"
-        >
-          <Switch />
-        </Form.Item>
+        {/* Only show Published field for managers/superusers AND if event is not already published */}
+        {isManagerOrSuperuser() && !event.published && (
+          <Form.Item
+            name="published"
+            label="Published"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        )}
 
         <Form.Item>
           <Button type="primary" htmlType="submit">

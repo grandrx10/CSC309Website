@@ -1,21 +1,20 @@
 import { Table, Button, Space, message, Form, Input, Modal, Typography, Row, Col, Card } from 'antd';
-import { UserAddOutlined } from '@ant-design/icons';
+import { UserAddOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 const { Title } = Typography;
 
-const EventGuests = ({ eventId }) => {
+const EventGuests = ({ eventId, canManageGuests }) => {
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  // Fetch guests data
   const fetchGuests = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}`, { // Changed from /guests endpoint
+      const response = await fetch(`http://localhost:3100/events/${eventId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -24,15 +23,18 @@ const EventGuests = ({ eventId }) => {
       if (!response.ok) throw new Error('Failed to fetch event details');
       
       const data = await response.json();
-      // Check if guests are returned in the event object or as a separate array
-      setGuests(data.guests || []); // Use the guests array from the event response
+      setGuests(data.guests || []);
     } catch (error) {
       message.error(error.message);
     }
   };
 
-  // Add new guest
   const addGuest = async (utorid) => {
+    if (!canManageGuests) {
+      message.error('You do not have permission to add guests');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:3100/events/${eventId}/guests`, {
@@ -56,8 +58,12 @@ const EventGuests = ({ eventId }) => {
     }
   };
 
-  // Remove guest
   const removeGuest = async (guestId) => {
+    if (!canManageGuests) {
+      message.error('You do not have permission to remove guests');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:3100/events/${eventId}/guests/${guestId}`, {
@@ -91,20 +97,19 @@ const EventGuests = ({ eventId }) => {
       dataIndex: 'utorid',
       render: (text) => <span style={{ color: '#666' }}>{text}</span>
     },
-    {
+    ...(canManageGuests ? [{
       title: 'Actions',
       width: 120,
       render: (_, guest) => (
         <Button 
           danger 
           size="small"
+          icon={<DeleteOutlined />}
           onClick={() => removeGuest(guest.id)}
           style={{ borderRadius: 4 }}
-        >
-          Remove
-        </Button>
+        />
       )
-    }
+    }] : [])
   ];
 
   return (
@@ -129,16 +134,18 @@ const EventGuests = ({ eventId }) => {
             </span>
           </Space>
         </Col>
-        <Col>
-          <Button 
-            type="primary"
-            icon={<UserAddOutlined />}
-            onClick={() => setModalVisible(true)}
-            style={{ borderRadius: 6 }}
-          >
-            Add Guest
-          </Button>
-        </Col>
+        {canManageGuests && (
+          <Col>
+            <Button 
+              type="primary"
+              icon={<UserAddOutlined />}
+              onClick={() => setModalVisible(true)}
+              style={{ borderRadius: 6 }}
+            >
+              Add Guest
+            </Button>
+          </Col>
+        )}
       </Row>
 
       <Table
@@ -151,37 +158,38 @@ const EventGuests = ({ eventId }) => {
         bordered
       />
 
-      {/* Add Guest Modal */}
-      <Modal
-        title={<span style={{ fontSize: 18, fontWeight: 500 }}>Add New Guest</span>}
-        visible={modalVisible}
-        onOk={() => form.submit()}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-        }}
-        okText="Add Guest"
-        okButtonProps={{ style: { borderRadius: 6 } }}
-        cancelButtonProps={{ style: { borderRadius: 6 } }}
-      >
-        <Form
-          form={form}
-          onFinish={(values) => addGuest(values.utorid)}
-          layout="vertical"
-          style={{ marginTop: 24 }}
+      {canManageGuests && (
+        <Modal
+          title={<span style={{ fontSize: 18, fontWeight: 500 }}>Add New Guest</span>}
+          visible={modalVisible}
+          onOk={() => form.submit()}
+          onCancel={() => {
+            setModalVisible(false);
+            form.resetFields();
+          }}
+          okText="Add Guest"
+          okButtonProps={{ style: { borderRadius: 6 } }}
+          cancelButtonProps={{ style: { borderRadius: 6 } }}
         >
-          <Form.Item
-            name="utorid"
-            label={<span style={{ fontWeight: 500 }}>UTORid</span>}
-            rules={[{ required: true, message: 'Please input UTORid!' }]}
+          <Form
+            form={form}
+            onFinish={(values) => addGuest(values.utorid)}
+            layout="vertical"
+            style={{ marginTop: 24 }}
           >
-            <Input 
-              placeholder="e.g. johndoe" 
-              style={{ borderRadius: 6 }}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+            <Form.Item
+              name="utorid"
+              label={<span style={{ fontWeight: 500 }}>UTORid</span>}
+              rules={[{ required: true, message: 'Please input UTORid!' }]}
+            >
+              <Input 
+                placeholder="e.g. johndoe" 
+                style={{ borderRadius: 6 }}
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
+      )}
     </Card>
   );
 };

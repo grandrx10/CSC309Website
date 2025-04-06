@@ -10,10 +10,29 @@ const Event = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [event, setEvent] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Determine edit mode from URL
   const isEditMode = location.pathname.endsWith('/edit');
+
+  // Fetch current user data
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:3100/users/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch user');
+      
+      const userData = await response.json();
+      setCurrentUser(userData);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  };
 
   // Fetch event data
   const fetchEvent = async () => {
@@ -38,6 +57,28 @@ const Event = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check if user has edit privileges
+  const hasEditPrivileges = () => {
+    if (!currentUser || !event) return false;
+    console.log(currentUser);
+    // Managers and superusers can always edit
+    if (['manager', 'superuser'].includes(currentUser.role.toLowerCase())) {
+      return true;
+    }
+    console.log(event.organizers?.some(org => org.utorid === currentUser.utorid))
+    // Check if current user is an organizer
+    return event.organizers?.some(org => org.utorid === currentUser.utorid);
+  };
+
+  // Check if user can manage guests
+  const canManageGuests = () => {
+    if (!currentUser) return false;
+    
+    // Managers, superusers, and organizers can manage guests
+    return ['manager', 'superuser'].includes(currentUser.role.toLowerCase()) || 
+           event.organizers?.some(org => org.utorid === currentUser.utorid);
   };
 
   // Update event
@@ -65,7 +106,7 @@ const Event = () => {
       const data = await response.json();
       setEvent(data);
       message.success('Event updated successfully');
-      navigate(`/events/${eventId}`); // Go back to view mode after save
+      navigate(`/events/${eventId}`);
     } catch (error) {
       message.error(error.message);
       throw error;
@@ -94,6 +135,7 @@ const Event = () => {
   };
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchEvent();
   }, [eventId]);
 
@@ -102,16 +144,20 @@ const Event = () => {
 
   return isEditMode ? (
     <EventForm 
-      event={event}
-      onCancel={() => navigate(`/events/${eventId}`)}
-      onSubmit={updateEvent}
-    />
+    event={event}
+    onCancel={() => navigate(`/events/${eventId}`)}
+    onSubmit={updateEvent}
+    isManagerOrSuperuser={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
+  />
   ) : (
     <EventDetails 
       event={event}
-      onEdit={() => navigate(`/events/${eventId}/edit`)}
-      onDelete={deleteEvent}
-    />
+      onEdit={hasEditPrivileges() ? () => navigate(`/events/${eventId}/edit`) : null}
+      onDelete={hasEditPrivileges() ? deleteEvent : null}
+      showGuestManagement={canManageGuests()}
+      showStatus={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
+      currentUser={currentUser}
+    /> 
   );
 };
 

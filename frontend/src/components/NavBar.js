@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../App.css';
 
-const NavBar = ({ children }) => {
+const NavBar = ({ userRole, children }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const isActive = (path) => location.pathname === path ? 'active' : '';
+
+    const isCashier = userRole === 'cashier' || userRole === 'manager' || userRole === 'superuser';
+    const isManager = userRole === 'manager' || userRole === 'superuser';
+    const isSuperuser = userRole === 'superuser';
     
     /* I borrowed some of the open/close functionality from:
     https://medium.com/swlh/how-to-make-a-side-navigation-bar-in-reactjs-c90747f3410c
@@ -38,6 +42,9 @@ const NavBar = ({ children }) => {
                                 <li><button onClick={() => navigate('/transactions')} className={isActive('/transactions')}>View All</button></li>
                                 <li><button onClick={() => navigate('/redeem')} className={isActive('/redeem')}>Redeem</button></li>
                                 <li><button onClick={() => navigate('/transfer')} className={isActive('/transfer')}>Transfer</button></li>
+                                {isCashier && (
+                                    <li><button onClick={() => navigate('/transactions/process')} className={isActive('/transactions/process')}>Process (for cashiers)</button></li>
+                                )}
                             </ul>
                         )}
                     </li>

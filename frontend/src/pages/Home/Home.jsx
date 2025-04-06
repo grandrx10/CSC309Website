@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import NavBar from '../../components/NavBar';
+import QRCode from 'react-qr-code';
 
 const Home = () => {
     const [userInfo, setUserInfo] = useState(null);
@@ -8,7 +9,7 @@ const Home = () => {
         const getInfo = async () => {
             try {
                 const token = localStorage.getItem('authToken');
-                
+
                 const response = await fetch("http://localhost:3100/users/me", {
                     method: "GET",
                     headers: {
@@ -40,6 +41,10 @@ const Home = () => {
                             <h2>Welcome, {userInfo.name}!</h2>
                             <p>{userInfo.role.charAt(0).toUpperCase() + userInfo.role.slice(1)}</p>
                             <p>{userInfo.points} points</p>
+                            {/* Test with https://scanqr.org/, it includes line breaks */}
+                            <QRCode
+                                value={`User ID - ${userInfo.id}\nUTORid - ${userInfo.utorid}`}
+                            />
                         </div>
                     ) : (
                         <p>Loading user info...</p>

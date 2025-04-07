@@ -1,7 +1,6 @@
 import { Table } from 'antd';
 import dayjs from 'dayjs';
 import styles from './EventsList.module.css';
-import EventActions from './EventActions';
 
 const EventsTable = ({ 
   events, 
@@ -11,7 +10,6 @@ const EventsTable = ({
   onManageUsers,
   showPointsColumn = false,
   showStatusColumn = false,
-  showActionsColumn = false
 }) => {
   const baseColumns = [
     {
@@ -57,17 +55,6 @@ const EventsTable = ({
         <span className={published ? styles.published : styles.draft}>
           {published ? 'Published' : 'Draft'}
         </span>
-      ),
-    },
-    showActionsColumn && {
-      title: 'Actions',
-      key: 'actions',
-      render: (_, record) => (
-        <EventActions 
-          eventId={record.id} 
-          onEdit={onEdit} 
-          onManageUsers={onManageUsers}
-        />
       ),
     },
   ].filter(Boolean); // Filter out false values

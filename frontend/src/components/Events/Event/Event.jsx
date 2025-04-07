@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { message, Skeleton } from 'antd';
 import EventDetails from './EventDetails';
 import EventForm from './EventForm';
-import dayjs from 'dayjs';
 import NavBar from '../../NavBar';
 
 const Event = () => {

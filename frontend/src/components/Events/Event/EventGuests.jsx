@@ -1,13 +1,12 @@
 import { Table, Button, Space, message, Form, Input, Modal, Typography, Row, Col, Card, InputNumber } from 'antd';
 import { UserAddOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 
 const { Title } = Typography;
 
-const EventGuests = ({ eventId, canManageGuests, canAwardPoints }) => {
+const EventGuests = ({ eventId, canManageGuests, canAwardPoints, canDeleteGuests }) => {
   const [guests, setGuests] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [pointsModalVisible, setPointsModalVisible] = useState(false);
   const [awardAllModalVisible, setAwardAllModalVisible] = useState(false);
@@ -163,7 +162,7 @@ const EventGuests = ({ eventId, canManageGuests, canAwardPoints }) => {
               style={{ borderRadius: 4 }}
             />
           )}
-          {canManageGuests && (
+          {canDeleteGuests && (
             <Button 
               danger 
               size="small"
@@ -296,8 +295,7 @@ const EventGuests = ({ eventId, canManageGuests, canAwardPoints }) => {
                   required: true, 
                   message: 'Please input points amount!',
                   type: 'number',
-                  min: 1,
-                  message: 'Points must be a positive integer'
+                  min: 1
                 }]}
               >
                 <InputNumber 
@@ -346,7 +344,6 @@ const EventGuests = ({ eventId, canManageGuests, canAwardPoints }) => {
                   message: 'Please input points amount!',
                   type: 'number',
                   min: 1,
-                  message: 'Points must be a positive integer'
                 }]}
               >
                 <InputNumber 

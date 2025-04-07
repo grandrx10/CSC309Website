@@ -1,4 +1,4 @@
-import { Descriptions, Space, Card, Tag } from 'antd';
+import { Descriptions, Card, Tag } from 'antd';
 import dayjs from 'dayjs';
 import PageHeader from '../Shared/PageHeader';
 import ActionButtons from '../Shared/ActionButtons';
@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 
 const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus, currentUser }) => {
   const navigate = useNavigate();
-  
   // Check if delete button should be shown
   const showDeleteButton = () => {
     // Don't show if no delete handler provided
@@ -15,7 +14,6 @@ const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus
     
     // Don't show for published events
     if (event.published) return false;
-    
     // Only show for managers/superusers
     return ['manager', 'superuser'].includes(currentUser?.role.toLowerCase());
   };
@@ -34,7 +32,6 @@ const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus
       organizer.utorid === currentUser?.utorid
     );
   };
-  console.log(showEditButton())
   return (
     <div style={{ padding: '24px' }}>
       <Card
@@ -51,12 +48,10 @@ const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus
             title={event.name}
             onBack={() => navigate('/events')}
             extra={
-              (showEditButton() || showDeleteButton()) && (
-                <ActionButtons
-                  onEdit={showEditButton() ? onEdit : null}
-                  onDelete={showDeleteButton() ? onDelete : null}
-                />
-              )
+              <ActionButtons
+                onEdit={showEditButton() ? onEdit : undefined}
+                onDelete={showDeleteButton() ? onDelete : undefined}
+              />
             }
           />
         </div>
@@ -102,6 +97,7 @@ const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus
           eventId={event.id} 
           canManageGuests={showGuestManagement}
           canAwardPoints={showGuestManagement}
+          canDeleteGuests={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
         />
       )}
     </div>

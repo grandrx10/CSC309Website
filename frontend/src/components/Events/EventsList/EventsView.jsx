@@ -24,6 +24,7 @@ const EventsView = ({
     const navigate = useNavigate();
     const [state, setState] = useState({
         events: [],
+        allEvents: [], // Store all fetched events before filtering
         loading: false,
         pagination: { current: 1, pageSize: 10, total: 0 },
         filters: {
@@ -98,11 +99,8 @@ const EventsView = ({
             const params = new URLSearchParams({
                 page: state.pagination.current,
                 limit: state.pagination.pageSize,
-                name: state.filters.search,
-                ...(state.filters.dateRange && {
-                    started: state.filters.dateRange[0]?.toISOString(),
-                    ended: state.filters.dateRange[1]?.toISOString()
-                })
+                name: state.filters.search
+                // Remove dateRange parameters - we'll handle filtering client-side
             });
 
             // Only add published filter when specifically choosing published/draft
@@ -110,14 +108,12 @@ const EventsView = ({
                 params.set('published', state.filters.status === 'published');
             }
 
-            // Always do client-side filtering for organizers
             const response = await fetch(`http://localhost:3100/events?${params.toString()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-
 
             if (!response.ok) {
                 if (response.status === 401) {
@@ -130,29 +126,16 @@ const EventsView = ({
             }
 
             const { count, results } = await response.json();
-
-            // Apply organizer filter if enabled
-            let filteredEvents = results;
-            let filteredCount = count;
-
-            if (state.filters.organizerOnly && user) {
-                filteredEvents = results.filter(event => isUserOrganizer(event, user.utorid));
-                filteredCount = filteredEvents.length;
-            }
-
+            
+            // Store all fetched events before filtering
             setState(prev => ({
                 ...prev,
-                events: filteredEvents,
-                pagination: {
-                    ...prev.pagination,
-                    total: filteredCount,
-                    current: filteredCount < (prev.pagination.current - 1) * prev.pagination.pageSize
-                        ? 1
-                        : prev.pagination.current
-                },
+                allEvents: results,
                 loading: false
             }));
-
+            
+            // Apply filters will be called through the useEffect below
+            
         } catch (error) {
             console.error('Error fetching events:', error);
             setState(prev => ({ ...prev, loading: false }));
@@ -161,13 +144,55 @@ const EventsView = ({
     }, [
         state.pagination.current,
         state.pagination.pageSize,
-        state.filters,
+        state.filters.search,
+        state.filters.status,
         variant,
         navigate,
         user,
-        fetchCurrentUser,
-        showSettings.showStatusFilter
+        fetchCurrentUser
     ]);
+    
+    // Separate function to apply filters (date range and organizer filtering)
+    const applyFilters = useCallback(() => {
+        const { allEvents, filters } = state;
+        
+        if (!allEvents.length) return;
+        
+        let filteredEvents = [...allEvents];
+        
+        // Apply date range filter if set
+        if (filters.dateRange && Array.isArray(filters.dateRange) && 
+            filters.dateRange.length === 2 && filters.dateRange[0] && filters.dateRange[1]) {
+            
+            const startDate = new Date(filters.dateRange[0]);
+            const endDate = new Date(filters.dateRange[1]);
+            
+            filteredEvents = filteredEvents.filter(event => {
+                const eventStart = new Date(event.startTime);
+                return eventStart >= startDate && eventStart <= endDate;
+            });
+        }
+        
+        // Apply organizer filter if enabled
+        if (filters.organizerOnly && user) {
+            filteredEvents = filteredEvents.filter(event => 
+                isUserOrganizer(event, user.utorid)
+            );
+        }
+        
+        // Update state with filtered events
+        setState(prev => ({
+            ...prev,
+            events: filteredEvents,
+            pagination: {
+                ...prev.pagination,
+                total: filteredEvents.length,
+                current: filteredEvents.length < (prev.pagination.current - 1) * prev.pagination.pageSize
+                    ? 1  // Reset to page 1 if current page would be empty
+                    : prev.pagination.current
+            }
+        }));
+    }, [state.allEvents, state.filters, user]);
 
     useEffect(() => {
         fetchCurrentUser();
@@ -178,12 +203,17 @@ const EventsView = ({
             fetchEvents();
         }
     }, [fetchEvents, user, variant, userLoading]);
+    
+    // Apply filters whenever allEvents, date range or organizer filter changes
+    useEffect(() => {
+        applyFilters();
+    }, [applyFilters, state.allEvents, state.filters.dateRange, state.filters.organizerOnly]);
 
     const handleFilterChange = (filterName, value) => {
         setState(prev => ({
             ...prev,
             filters: { ...prev.filters, [filterName]: value },
-            pagination: { ...prev.pagination, current: 1 }
+            pagination: { ...prev.pagination, current: 1 } // Reset to page 1 when filters change
         }));
     };
 
@@ -236,9 +266,6 @@ const EventsView = ({
             ),
         }] : [])
     ], [showSettings.showPointsColumn, showSettings.showStatusFilter, navigate]);
-
-    // Remove the conditional return that shows the loading message
-    // Instead, always render the full UI structure
 
     return (
         <div>

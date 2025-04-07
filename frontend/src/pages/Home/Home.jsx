@@ -34,12 +34,12 @@ const Home = () => {
 
     return (
         <div>
-            <NavBar>
+            <NavBar userRole={userInfo?.role.toLowerCase()}>
                 <div class="home">
                     {userInfo ? (
                         <div>
                             <h2>Welcome, {userInfo.name}!</h2>
-                            <p>{userInfo.role.charAt(0).toUpperCase() + userInfo.role.slice(1)}</p>
+                            <p>{userInfo.role.charAt(0).toUpperCase() + userInfo.role.slice(1).toLowerCase()}</p>
                             <p>{userInfo.points} points</p>
                             {/* Test with https://scanqr.org/, it includes line breaks */}
                             <QRCode

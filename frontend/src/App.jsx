@@ -10,6 +10,8 @@ import Promotions from './pages/Features/Promotions';
 import Transactions from './pages/Features/Transactions/Transactions';
 import Transfer from './pages/Features/Transactions/Transfer';
 import Redeem from './pages/Features/Transactions/Redeem';
+import Process from './pages/Features/Transactions/Process';
+import Purchase from './pages/Features/Transactions/Purchase';
 import Settings from './pages/Home/Settings';
 
 function App() {
@@ -28,6 +30,8 @@ function App() {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/transfer" element={<Transfer />} />
         <Route path="/redeem" element={<Redeem />} />
+        <Route path="/transactions/process" element={<Process />} />
+        <Route path="/transactions/purchase" element={<Purchase />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </Router>

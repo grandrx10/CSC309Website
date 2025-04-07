@@ -50,7 +50,7 @@ const Process = () => {
     return (
         <div>
             <NavBar>
-                <div class="process">
+                <div className="process">
                     <h1>Process Redemption</h1>
                     <label htmlFor="amount">Enter Redemption ID:</label>
                     <div>
@@ -60,7 +60,7 @@ const Process = () => {
                             id="redemptionId"
                             value={redemptionId}
                             onChange={handleRedemptionIdChange}
-                            placeholder="Enter Amount"
+                            placeholder="Enter Redemption ID"
                         />
                     </div>
                     <button onClick={handleProcessing}>Process Redemption</button>

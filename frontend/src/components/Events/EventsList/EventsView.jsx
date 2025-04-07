@@ -1,12 +1,19 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Pagination, Space, message } from 'antd';
-import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { Button, Pagination, Space, message, Dropdown, Menu } from 'antd';
+import { PlusOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons';
 import EventsTable from './EventsTable';
 import EventsFilters from './EventsFilters';
 import styles from './EventsList.module.css';
 import dayjs from 'dayjs';
 import NavBar from '../../NavBar';
+
+const ROLE_HIERARCHY = {
+  'superuser': ['superuser', 'manager', 'cashier', 'regular'],
+  'manager': ['manager', 'cashier', 'regular'],
+  'cashier': ['cashier', 'regular'],
+  'regular': ['regular']
+};
 
 const isUserOrganizer = (event, userUtorid) => {
     if (!event.organizers || !userUtorid) return false;
@@ -24,7 +31,7 @@ const EventsView = ({
     const navigate = useNavigate();
     const [state, setState] = useState({
         events: [],
-        allEvents: [], // Store all fetched events before filtering
+        allEvents: [],
         loading: false,
         pagination: { current: 1, pageSize: 10, total: 0 },
         filters: {
@@ -32,6 +39,8 @@ const EventsView = ({
             status: 'all',
             dateRange: null,
             organizerOnly: false,
+            sortBy: 'startTime',
+            sortOrder: 'asc',
             ...initialFilters
         }
     });
@@ -43,7 +52,8 @@ const EventsView = ({
         showPointsColumn: false,
         showOrganizerFilter: false
     });
-
+    const [currentViewRole, setCurrentViewRole] = useState(null);
+    
     const fetchCurrentUser = useCallback(async () => {
         try {
             setUserLoading(true);
@@ -69,14 +79,8 @@ const EventsView = ({
 
             const userData = await response.json();
             setUser(userData);
+            setCurrentViewRole(userData.role.toLowerCase()); // Initialize with user's actual role
 
-            const isPrivileged = ['manager', 'superuser'].includes(userData.role.toLowerCase());
-            setShowSettings({
-                showCreateButton: isPrivileged,
-                showStatusFilter: isPrivileged,
-                showPointsColumn: isPrivileged,
-                showOrganizerFilter: true
-            });
             setUserLoading(false);
         } catch (error) {
             console.error('Error fetching user:', error);
@@ -84,6 +88,19 @@ const EventsView = ({
             setUserLoading(false);
         }
     }, [navigate]);
+
+    // Update showSettings based on currentViewRole
+    useEffect(() => {
+        if (!currentViewRole || !user) return;
+        
+        const isPrivileged = ['manager', 'superuser'].includes(currentViewRole);
+        setShowSettings({
+            showCreateButton: ['manager', 'superuser'].includes(currentViewRole),
+            showStatusFilter: isPrivileged,
+            showPointsColumn: isPrivileged,
+            showOrganizerFilter: true
+        });
+    }, [currentViewRole, user]);
 
     const fetchEvents = useCallback(async () => {
         if (!user && variant === 'organizer') {
@@ -100,10 +117,8 @@ const EventsView = ({
                 page: state.pagination.current,
                 limit: state.pagination.pageSize,
                 name: state.filters.search
-                // Remove dateRange parameters - we'll handle filtering client-side
             });
 
-            // Only add published filter when specifically choosing published/draft
             if (state.filters.status === 'published' || state.filters.status === 'draft') {
                 params.set('published', state.filters.status === 'published');
             }
@@ -127,14 +142,11 @@ const EventsView = ({
 
             const { count, results } = await response.json();
             
-            // Store all fetched events before filtering
             setState(prev => ({
                 ...prev,
                 allEvents: results,
                 loading: false
             }));
-            
-            // Apply filters will be called through the useEffect below
             
         } catch (error) {
             console.error('Error fetching events:', error);
@@ -152,7 +164,6 @@ const EventsView = ({
         fetchCurrentUser
     ]);
     
-    // Separate function to apply filters (date range and organizer filtering)
     const applyFilters = useCallback(() => {
         const { allEvents, filters } = state;
         
@@ -160,7 +171,6 @@ const EventsView = ({
         
         let filteredEvents = [...allEvents];
         
-        // Apply date range filter if set
         if (filters.dateRange && Array.isArray(filters.dateRange) && 
             filters.dateRange.length === 2 && filters.dateRange[0] && filters.dateRange[1]) {
             
@@ -173,26 +183,102 @@ const EventsView = ({
             });
         }
         
-        // Apply organizer filter if enabled
         if (filters.organizerOnly && user) {
             filteredEvents = filteredEvents.filter(event => 
                 isUserOrganizer(event, user.utorid)
             );
         }
         
-        // Update state with filtered events
+        if (filters.sortBy) {
+            filteredEvents.sort((a, b) => {
+                let comparison = 0;
+                
+                switch (filters.sortBy) {
+                    case 'name':
+                        comparison = a.name.localeCompare(b.name);
+                        break;
+                    case 'location':
+                        comparison = a.location.localeCompare(b.location);
+                        break;
+                    case 'startTime':
+                        comparison = new Date(a.startTime) - new Date(b.startTime);
+                        break;
+                    case 'endTime':
+                        comparison = new Date(a.endTime) - new Date(b.endTime);
+                        break;
+                    default:
+                        comparison = 0;
+                }
+                
+                return filters.sortOrder === 'desc' ? -comparison : comparison;
+            });
+        }
+        
+        setState(prev => {
+            const totalFilteredEvents = filteredEvents.length;
+            const { pageSize, current } = prev.pagination;
+            
+            const maxPage = Math.max(1, Math.ceil(totalFilteredEvents / pageSize));
+            const newCurrent = current > maxPage ? 1 : current;
+            
+            return {
+                ...prev,
+                events: filteredEvents,
+                pagination: {
+                    ...prev.pagination,
+                    total: totalFilteredEvents,
+                    current: newCurrent
+                }
+            };
+        });
+    }, [state.allEvents, state.filters, user]);
+    
+    const paginatedEvents = useMemo(() => {
+        const { current, pageSize } = state.pagination;
+        const startIndex = (current - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        return state.events.slice(startIndex, endIndex);
+    }, [state.events, state.pagination.current, state.pagination.pageSize]);
+    
+    const handlePaginationChange = (page, pageSize) => {
         setState(prev => ({
             ...prev,
-            events: filteredEvents,
-            pagination: {
-                ...prev.pagination,
-                total: filteredEvents.length,
-                current: filteredEvents.length < (prev.pagination.current - 1) * prev.pagination.pageSize
-                    ? 1  // Reset to page 1 if current page would be empty
-                    : prev.pagination.current
+            pagination: { 
+                ...prev.pagination, 
+                current: page,
+                pageSize: pageSize || prev.pagination.pageSize
             }
         }));
-    }, [state.allEvents, state.filters, user]);
+    };
+
+    const handleRoleChange = (role) => {
+        setCurrentViewRole(role);
+    };
+
+    const renderRoleDropdown = () => {
+        if (!user) return null;
+        
+        const userRole = user.role.toLowerCase();
+        const availableRoles = ROLE_HIERARCHY[userRole] || ['regular'];
+        
+        const menu = (
+            <Menu onClick={({ key }) => handleRoleChange(key)}>
+                {availableRoles.map(role => (
+                    <Menu.Item key={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </Menu.Item>
+                ))}
+            </Menu>
+        );
+        
+        return (
+            <Dropdown overlay={menu} placement="bottomRight">
+                <Button icon={<UserOutlined />}>
+                    Viewing as: {currentViewRole ? currentViewRole.charAt(0).toUpperCase() + currentViewRole.slice(1) : 'Unknown'}
+                </Button>
+            </Dropdown>
+        );
+    };
 
     useEffect(() => {
         fetchCurrentUser();
@@ -202,9 +288,8 @@ const EventsView = ({
         if ((user || variant !== 'organizer') && !userLoading) {
             fetchEvents();
         }
-    }, [fetchEvents, user, variant, userLoading]);
+    }, [fetchEvents, user, variant, userLoading, currentViewRole]);
     
-    // Apply filters whenever allEvents, date range or organizer filter changes
     useEffect(() => {
         applyFilters();
     }, [applyFilters, state.allEvents, state.filters.dateRange, state.filters.organizerOnly]);
@@ -213,7 +298,7 @@ const EventsView = ({
         setState(prev => ({
             ...prev,
             filters: { ...prev.filters, [filterName]: value },
-            pagination: { ...prev.pagination, current: 1 } // Reset to page 1 when filters change
+            pagination: { ...prev.pagination, current: 1 }
         }));
     };
 
@@ -225,29 +310,39 @@ const EventsView = ({
             render: (text, record) => (
                 <a onClick={() => navigate(`/events/${record.id}`)}>{text}</a>
             ),
-        },
-        {
-            title: 'Organizers',
-            dataIndex: 'organizers',
-            key: 'organizers',
-            render: (organizers) => organizers?.map(o => o.name).join(', ') || 'None',
+            sorter: {
+                compare: (a, b) => a.name.localeCompare(b.name),
+                multiple: 3,
+            },
         },
         {
             title: 'Location',
             dataIndex: 'location',
             key: 'location',
+            sorter: {
+                compare: (a, b) => a.location.localeCompare(b.location),
+                multiple: 2,
+            },
         },
         {
             title: 'Start Time',
             dataIndex: 'startTime',
             key: 'startTime',
             render: (text) => dayjs(text).format('MMM D, YYYY h:mm A'),
+            sorter: {
+                compare: (a, b) => new Date(a.startTime) - new Date(b.startTime),
+                multiple: 1,
+            },
         },
         {
             title: 'End Time',
             dataIndex: 'endTime',
             key: 'endTime',
             render: (text) => dayjs(text).format('MMM D, YYYY h:mm A'),
+            sorter: {
+                compare: (a, b) => new Date(a.endTime) - new Date(b.endTime),
+                multiple: 1,
+            },
         },
         ...(showSettings.showPointsColumn ? [{
             title: 'Points',
@@ -290,6 +385,7 @@ const EventsView = ({
                                     Create Event
                                 </Button>
                             )}
+                            {renderRoleDropdown()}
                         </Space>
                     </div>
 
@@ -302,7 +398,7 @@ const EventsView = ({
                     />
 
                     <EventsTable
-                        events={state.events}
+                        events={paginatedEvents}
                         loading={state.loading || userLoading}
                         onRowClick={(id) => navigate(`/events/${id}`)}
                         showPointsColumn={showSettings.showPointsColumn}
@@ -311,16 +407,16 @@ const EventsView = ({
                         columns={columns || defaultColumns}
                     />
 
-                    <Pagination
-                        current={state.pagination.current}
-                        pageSize={state.pagination.pageSize}
-                        total={state.pagination.total}
-                        onChange={(page) => setState(prev => ({
-                            ...prev,
-                            pagination: { ...prev.pagination, current: page }
-                        }))}
-                        className={styles.pagination}
-                    />
+                <Pagination
+                    current={state.pagination.current}
+                    pageSize={state.pagination.pageSize}
+                    total={state.pagination.total}
+                    onChange={handlePaginationChange}
+                    onShowSizeChange={(current, size) => handlePaginationChange(1, size)}
+                    showSizeChanger
+                    showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} items`}
+                    className={styles.pagination}
+                />
                 </div>
             </NavBar>
         </div>

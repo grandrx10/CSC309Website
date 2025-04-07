@@ -110,7 +110,6 @@ const PromotionList = () => {
 
     return (
         <div style={{ paddingTop: '60px' }}> {/* Add padding to account for navbar */}
-            <NavBar />
             <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2>Promotions</h2>

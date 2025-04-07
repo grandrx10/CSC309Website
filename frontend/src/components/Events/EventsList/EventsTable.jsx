@@ -10,6 +10,8 @@ const EventsTable = ({
   onManageUsers,
   showPointsColumn = false,
   showStatusColumn = false,
+  showActionsColumn = false,
+  columns: customColumns = null,
 }) => {
   const baseColumns = [
     {
@@ -30,7 +32,6 @@ const EventsTable = ({
       dataIndex: 'startTime',
       key: 'startTime',
       render: (text) => dayjs(text).format('MMM D, YYYY h:mm A'),
-      sorter: true,
     },
     {
       title: 'End Time',
@@ -57,16 +58,17 @@ const EventsTable = ({
         </span>
       ),
     },
+    
   ].filter(Boolean); // Filter out false values
 
-  const columns = [...baseColumns, ...optionalColumns];
+  const columns = customColumns || [...baseColumns, ...optionalColumns];
 
   return (
     <Table
       columns={columns}
       dataSource={events}
       rowKey="id"
-      pagination={false}
+      pagination={false} // Important: we handle pagination separately
       loading={loading}
       className={styles.table}
     />

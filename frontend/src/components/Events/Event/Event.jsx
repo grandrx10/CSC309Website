@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { message, Skeleton } from 'antd';
+import { message, Skeleton, Button, Dropdown, Menu } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import EventDetails from './EventDetails';
 import EventForm from './EventForm';
 import NavBar from '../../NavBar';
+
+const ROLE_HIERARCHY = {
+  'superuser': ['superuser', 'manager', 'cashier', 'regular'],
+  'manager': ['manager', 'cashier', 'regular'],
+  'cashier': ['cashier', 'regular'],
+  'regular': ['regular']
+};
 
 const Event = () => {
   const { eventId } = useParams();
@@ -12,6 +20,7 @@ const Event = () => {
   const [event, setEvent] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentViewRole, setCurrentViewRole] = useState('regular');
   
   const isEditMode = location.pathname.endsWith('/edit');
 
@@ -29,6 +38,17 @@ const Event = () => {
       
       const userData = await response.json();
       setCurrentUser(userData);
+      
+      // Initialize view role from localStorage or use user's actual role
+      const savedRole = localStorage.getItem('currentViewRole');
+      const userRole = userData.role.toLowerCase();
+      const availableRoles = ROLE_HIERARCHY[userRole] || ['regular'];
+      
+      if (savedRole && availableRoles.includes(savedRole)) {
+        setCurrentViewRole(savedRole);
+      } else {
+        setCurrentViewRole(userRole);
+      }
     } catch (error) {
       console.error('Error fetching user:', error);
     }
@@ -59,25 +79,54 @@ const Event = () => {
     }
   };
 
-  // Check if user has edit privileges
+  // Handle role change
+  const handleRoleChange = (role) => {
+    setCurrentViewRole(role);
+    localStorage.setItem('currentViewRole', role);
+  };
+
+  // Render role switcher dropdown
+  const renderRoleDropdown = () => {
+    if (!currentUser) return null;
+    
+    const userRole = currentUser.role.toLowerCase();
+    const availableRoles = ROLE_HIERARCHY[userRole] || ['regular'];
+    
+    const menu = (
+      <Menu onClick={({ key }) => handleRoleChange(key)}>
+        {availableRoles.map(role => (
+          <Menu.Item key={role}>
+            {role.charAt(0).toUpperCase() + role.slice(1)}
+          </Menu.Item>
+        ))}
+      </Menu>
+    );
+    
+    return (
+      <Dropdown overlay={menu} placement="bottomRight">
+        <Button icon={<UserOutlined />}>
+          Viewing as: {currentViewRole.charAt(0).toUpperCase() + currentViewRole.slice(1)}
+        </Button>
+      </Dropdown>
+    );
+  };
+
+  // Check if user has edit privileges based on current view role
   const hasEditPrivileges = () => {
     if (!currentUser || !event) return false;
-    console.log(currentUser);
-    // Managers and superusers can always edit
-    if (['manager', 'superuser'].includes(currentUser.role.toLowerCase())) {
+    
+    if (['manager', 'superuser'].includes(currentViewRole)) {
       return true;
     }
-    console.log(event.organizers?.some(org => org.utorid === currentUser.utorid))
-    // Check if current user is an organizer
+    
     return event.organizers?.some(org => org.utorid === currentUser.utorid);
   };
 
-  // Check if user can manage guests
+  // Check if user can manage guests based on current view role
   const canManageGuests = () => {
     if (!currentUser) return false;
     
-    // Managers, superusers, and organizers can manage guests
-    return ['manager', 'superuser'].includes(currentUser.role.toLowerCase()) || 
+    return ['manager', 'superuser'].includes(currentViewRole) || 
            event.organizers?.some(org => org.utorid === currentUser.utorid);
   };
 
@@ -153,15 +202,21 @@ const Event = () => {
 
   return isEditMode ? (
     <NavBar>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 24px 0 0' }}>
+        {renderRoleDropdown()}
+      </div>
       <EventForm 
-      event={event}
-      onCancel={() => navigate(`/events/${eventId}`)}
-      onSubmit={updateEvent}
-      isManagerOrSuperuser={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
+        event={event}
+        onCancel={() => navigate(`/events/${eventId}`)}
+        onSubmit={updateEvent}
+        isManagerOrSuperuser={['manager', 'superuser'].includes(currentViewRole)}
       />
     </NavBar>
   ) : (
     <NavBar>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 24px 0 0' }}>
+        {renderRoleDropdown()}
+      </div>
       <EventDetails 
         event={event}
         onEdit={hasEditPrivileges() ? () => navigate(`/events/${eventId}/edit`) : null}
@@ -169,8 +224,8 @@ const Event = () => {
         showGuestManagement={canManageGuests()}
         showStatus={hasEditPrivileges()}
         currentUser={currentUser}
+        currentViewRole={currentViewRole}
       /> 
-    
     </NavBar>
   );
 };

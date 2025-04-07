@@ -18,7 +18,9 @@ import Transfer from './pages/Features/Transactions/Transfer';
 import Redeem from './pages/Features/Transactions/Redeem';
 import Process from './pages/Features/Transactions/Process';
 import Purchase from './pages/Features/Transactions/Purchase';
-import Settings from './pages/Home/Settings';
+import Profile from './components/Profile/Profile';
+import EditProfile from './components/Profile/EditProfile';
+import ChangePassword from './components/Profile/ChangePassword';
 
 function App() {
   return (
@@ -43,7 +45,11 @@ function App() {
         <Route path="/redeem" element={<Redeem />} />
         <Route path="/transactions/process" element={<Process />} />
         <Route path="/transactions/purchase" element={<Purchase />} />
-        <Route path="/settings" element={<Settings />} />
+        
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/edit" element={<EditProfile />} />
+        <Route path="/profile/change-password" element={<ChangePassword />} />
+
       </Routes>
     </Router>
   );

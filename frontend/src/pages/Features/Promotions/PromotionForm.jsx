@@ -114,7 +114,7 @@ const PromotionForm = ({ isEdit }) => {
 
     return (
         <div style={{ paddingTop: '60px' }}>
-            <NavBar />
+            
             <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
                 <h2>{isEdit ? 'Edit Promotion' : 'Create New Promotion'}</h2>
                 

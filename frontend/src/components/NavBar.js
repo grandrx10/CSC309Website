@@ -63,7 +63,7 @@ const NavBar = ({ userRole, children }) => {
                         )}
                     </li>
                     <li><button onClick={() => navigate('/events')} className={isActive('/events')}>Events</button></li>
-                    <li><button onClick={() => navigate('/settings')} className={isActive('/settings')}>Settings</button></li>
+                    <li><button onClick={() => navigate('/profile')} className={isActive('/profile')}>Profile</button></li>
                     <li><button onClick={() => navigate('/')} className={`log-out ${isActive('/')}`}>Log Out</button></li>
                 </ul>
             </div>

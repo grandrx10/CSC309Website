@@ -302,15 +302,18 @@ app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avata
     try {
         // Validate name length
         if (name && (name.length < 1 || name.length > 50)) {
+            console.log("name bad")
           return res.status(400).json({ error: 'name must be between 1 and 50 characters' });
         }
     
         // Validate email format (UofT email)
         if (email !== null) {
           if (!email || !email.trim()) {
+            console.log("email bad")
             return res.status(400).json({ error: 'email cannot be empty' });
           }
           if (!/^[^\s@]+@mail\.utoronto\.ca$/.test(email)) {
+            console.log("email not uoft")
             return res.status(400).json({ error: 'email must be a valid University of Toronto email' });
           }
         }
@@ -318,6 +321,7 @@ app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avata
         // Validate birthday format and check if it's a real date
         if (birthday) {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
+                console.log("birthday bad")
                 return res.status(400).json({ error: 'birthday must be in the format YYYY-MM-DD' });
             }
 
@@ -330,6 +334,7 @@ app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avata
                 date.getMonth() + 1 !== month || 
                 date.getDate() !== day
             ) {
+                console.log("birthday doesnt exist")
                 return res.status(400).json({ error: 'birthday must be a valid date' });
             }
         }
@@ -433,6 +438,7 @@ app.get('/users/me', authenticateUser, isRegularOrHigher, async (req, res) => {
           points: true,
         },
       });
+
       // Respond with the user and available promotions
       res.status(200).json({
         ...user,
@@ -2519,6 +2525,10 @@ app.post('/events/:eventId/transactions', authenticateUser, async (req, res) => 
                     points: { increment: amount }  // Adds `amount` to user's existing points
                 }
             });
+
+            const user = await prisma.user.findUnique({
+                where: { utorid }
+              });
 
             // Format the response
             transactions = {

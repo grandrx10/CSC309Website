@@ -69,7 +69,6 @@ const PromotionDetailView = () => {
 
     return (
         <div style={{ paddingTop: '60px' }}>
-            <NavBar />
             <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2>Promotion Details</h2>

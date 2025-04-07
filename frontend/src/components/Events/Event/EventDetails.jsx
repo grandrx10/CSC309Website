@@ -5,33 +5,35 @@ import ActionButtons from '../Shared/ActionButtons';
 import EventGuests from './EventGuests';
 import { useNavigate } from 'react-router-dom';
 
-const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus, currentUser }) => {
+const EventDetails = ({ 
+  event, 
+  onEdit, 
+  onDelete, 
+  showGuestManagement, 
+  showStatus, 
+  currentUser,
+  currentViewRole 
+}) => {
   const navigate = useNavigate();
-  // Check if delete button should be shown
+
+  // Check if delete button should be shown based on current view role
   const showDeleteButton = () => {
-    // Don't show if no delete handler provided
     if (!onDelete) return false;
-    
-    // Don't show for published events
     if (event.published) return false;
-    // Only show for managers/superusers
-    return ['manager', 'superuser'].includes(currentUser?.role.toLowerCase());
+    return ['manager', 'superuser'].includes(currentViewRole);
   };
 
-  // Check if edit button should be shown
+  // Check if edit button should be shown based on current view role
   const showEditButton = () => {
-    // Don't show if no edit handler provided
     if (!onEdit) return false;
-    // Show for managers/superusers regardless of ownership
-    if (['manager', 'superuser'].includes(currentUser?.role.toLowerCase())) {
+    if (['manager', 'superuser'].includes(currentViewRole)) {
       return true;
     }
-    
-    // Show for the event organizer (assuming event.organizerId exists and matches currentUser.id)
     return event.organizers && event.organizers.some(organizer => 
       organizer.utorid === currentUser?.utorid
     );
   };
+
   return (
     <div style={{ padding: '24px' }}>
       <Card
@@ -97,7 +99,7 @@ const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus
           eventId={event.id} 
           canManageGuests={showGuestManagement}
           canAwardPoints={showGuestManagement}
-          canDeleteGuests={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
+          canDeleteGuests={['manager', 'superuser'].includes(currentViewRole)}
         />
       )}
     </div>

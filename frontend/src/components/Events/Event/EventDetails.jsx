@@ -1,4 +1,4 @@
-import { Descriptions, Space, Card } from 'antd';
+import { Descriptions, Space, Card, Tag } from 'antd';
 import dayjs from 'dayjs';
 import PageHeader from '../Shared/PageHeader';
 import ActionButtons from '../Shared/ActionButtons';
@@ -79,6 +79,20 @@ const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus
                 </span>
               </Descriptions.Item>
             )}
+            {showStatus && (
+              <>
+                <Descriptions.Item label="Points Remaining">
+                  <Tag color="blue" style={{ fontSize: 14, padding: '4px 8px' }}>
+                    {event.pointsRemain}
+                  </Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Points Awarded">
+                  <Tag color="green" style={{ fontSize: 14, padding: '4px 8px' }}>
+                    {event.pointsAwarded}
+                  </Tag>
+                </Descriptions.Item>
+              </>
+            )}
           </Descriptions>
         </div>
       </Card>
@@ -86,7 +100,8 @@ const EventDetails = ({ event, onEdit, onDelete, showGuestManagement, showStatus
       {showGuestManagement && (
         <EventGuests 
           eventId={event.id} 
-          canManageGuests={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
+          canManageGuests={showGuestManagement}
+          canAwardPoints={showGuestManagement}
         />
       )}
     </div>

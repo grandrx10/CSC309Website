@@ -10,10 +10,6 @@ import NavBar from '../../NavBar';
 
 const isUserOrganizer = (event, userUtorid) => {
     if (!event.organizers || !userUtorid) return false;
-
-    console.log(event)
-    console.log(userUtorid)
-
     return event.organizers.some(organizer =>
         organizer.utorid === userUtorid
     );
@@ -115,7 +111,6 @@ const EventsView = ({
             }
 
             // Always do client-side filtering for organizers
-            // (since your backend might not support organizer filtering)
             const response = await fetch(`http://localhost:3100/events?${params.toString()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -242,9 +237,8 @@ const EventsView = ({
         }] : [])
     ], [showSettings.showPointsColumn, showSettings.showStatusFilter, navigate]);
 
-    if (userLoading) {
-        return <div>Loading user data...</div>;
-    }
+    // Remove the conditional return that shows the loading message
+    // Instead, always render the full UI structure
 
     return (
         <div>
@@ -256,7 +250,7 @@ const EventsView = ({
                             <Button
                                 icon={<SyncOutlined />}
                                 onClick={fetchEvents}
-                                loading={state.loading}
+                                loading={state.loading || userLoading}
                             >
                                 Refresh
                             </Button>
@@ -282,7 +276,7 @@ const EventsView = ({
 
                     <EventsTable
                         events={state.events}
-                        loading={state.loading}
+                        loading={state.loading || userLoading}
                         onRowClick={(id) => navigate(`/events/${id}`)}
                         showPointsColumn={showSettings.showPointsColumn}
                         showStatusColumn={showSettings.showStatusFilter}
@@ -303,7 +297,6 @@ const EventsView = ({
                 </div>
             </NavBar>
         </div>
-
     );
 };
 

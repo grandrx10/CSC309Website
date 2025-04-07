@@ -1760,7 +1760,6 @@ app.get('/events', authenticateUser, async (req, res) => {
 
             return baseResponse;
         });
-        console.log(results);
         // Return the response
         res.status(200).json({
             count,
@@ -1920,7 +1919,7 @@ app.patch('/events/:eventId', authenticateUser, async (req, res) => {
         if (startTime != null) updateData.startTime = new Date(startTime);
         if (endTime != null) updateData.endTime = new Date(endTime);
         if (capacity != null) updateData.capacity = capacity;
-        if (points != null) updateData.pointsRemain = points - existingEvent.pointsAwarded;
+        if (points != null) updateData.pointsRemain = points;
         if (published != null) updateData.published = published;
         const updatedEvent = await prisma.event.update({
             where: { id: eventIdInt },

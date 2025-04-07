@@ -1,15 +1,20 @@
-import { Table, Button, Space, message, Form, Input, Modal, Typography, Row, Col, Card } from 'antd';
-import { UserAddOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, message, Form, Input, Modal, Typography, Row, Col, Card, InputNumber } from 'antd';
+import { UserAddOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 const { Title } = Typography;
 
-const EventGuests = ({ eventId, canManageGuests }) => {
+const EventGuests = ({ eventId, canManageGuests, canAwardPoints }) => {
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [pointsModalVisible, setPointsModalVisible] = useState(false);
+  const [awardAllModalVisible, setAwardAllModalVisible] = useState(false);
+  const [selectedGuest, setSelectedGuest] = useState(null);
   const [form] = Form.useForm();
+  const [awardForm] = Form.useForm();
+  const [awardAllForm] = Form.useForm();
 
   const fetchGuests = async () => {
     try {
@@ -82,6 +87,53 @@ const EventGuests = ({ eventId, canManageGuests }) => {
     }
   };
 
+  const awardPoints = async (values) => {
+    if (!canAwardPoints) {
+      message.error('You do not have permission to award points');
+      return;
+    }
+  
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:3100/events/${eventId}/transactions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: "event",
+          utorid: selectedGuest?.utorid,
+          amount: values.amount,
+          remark: values.remark || undefined
+        })
+      });
+  
+      if (!response.ok) throw new Error('Failed to award points');
+  
+      message.success(`Successfully awarded ${values.amount} points to ${selectedGuest?.name || 'all guests'}`);
+      setPointsModalVisible(false);
+      setAwardAllModalVisible(false);
+      awardForm.resetFields();
+      awardAllForm.resetFields();
+      
+      // Refresh the entire page
+      window.location.reload();
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const handleAwardPoints = (guest) => {
+    setSelectedGuest(guest);
+    setPointsModalVisible(true);
+  };
+
+  const handleAwardAll = () => {
+    setSelectedGuest(null);
+    setAwardAllModalVisible(true);
+  };
+
   useEffect(() => {
     fetchGuests();
   }, [eventId]);
@@ -97,17 +149,30 @@ const EventGuests = ({ eventId, canManageGuests }) => {
       dataIndex: 'utorid',
       render: (text) => <span style={{ color: '#666' }}>{text}</span>
     },
-    ...(canManageGuests ? [{
+    ...(canManageGuests || canAwardPoints ? [{
       title: 'Actions',
-      width: 120,
+      width: 150,
       render: (_, guest) => (
-        <Button 
-          danger 
-          size="small"
-          icon={<DeleteOutlined />}
-          onClick={() => removeGuest(guest.id)}
-          style={{ borderRadius: 4 }}
-        />
+        <Space>
+          {canAwardPoints && (
+            <Button 
+              type="primary" 
+              size="small"
+              icon={<GiftOutlined />}
+              onClick={() => handleAwardPoints(guest)}
+              style={{ borderRadius: 4 }}
+            />
+          )}
+          {canManageGuests && (
+            <Button 
+              danger 
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => removeGuest(guest.id)}
+              style={{ borderRadius: 4 }}
+            />
+          )}
+        </Space>
       )
     }] : [])
   ];
@@ -134,18 +199,30 @@ const EventGuests = ({ eventId, canManageGuests }) => {
             </span>
           </Space>
         </Col>
-        {canManageGuests && (
-          <Col>
-            <Button 
-              type="primary"
-              icon={<UserAddOutlined />}
-              onClick={() => setModalVisible(true)}
-              style={{ borderRadius: 6 }}
-            >
-              Add Guest
-            </Button>
-          </Col>
-        )}
+        <Col>
+          <Space>
+            {canAwardPoints && (
+              <Button 
+                type="primary"
+                icon={<GiftOutlined />}
+                onClick={handleAwardAll}
+                style={{ borderRadius: 6 }}
+              >
+                Award All Guests
+              </Button>
+            )}
+            {canManageGuests && (
+              <Button 
+                type="primary"
+                icon={<UserAddOutlined />}
+                onClick={() => setModalVisible(true)}
+                style={{ borderRadius: 6 }}
+              >
+                Add Guest
+              </Button>
+            )}
+          </Space>
+        </Col>
       </Row>
 
       <Table
@@ -189,6 +266,108 @@ const EventGuests = ({ eventId, canManageGuests }) => {
             </Form.Item>
           </Form>
         </Modal>
+      )}
+
+      {/* Award Points Modal */}
+      {canAwardPoints && (
+        <>
+          <Modal
+            title={<span style={{ fontSize: 18, fontWeight: 500 }}>Award Points to {selectedGuest?.name}</span>}
+            visible={pointsModalVisible}
+            onOk={() => awardForm.submit()}
+            onCancel={() => {
+              setPointsModalVisible(false);
+              awardForm.resetFields();
+            }}
+            okText="Award Points"
+            okButtonProps={{ style: { borderRadius: 6 } }}
+            cancelButtonProps={{ style: { borderRadius: 6 } }}
+          >
+            <Form
+              form={awardForm}
+              onFinish={awardPoints}
+              layout="vertical"
+              style={{ marginTop: 24 }}
+            >
+              <Form.Item
+                name="amount"
+                label={<span style={{ fontWeight: 500 }}>Points Amount</span>}
+                rules={[{ 
+                  required: true, 
+                  message: 'Please input points amount!',
+                  type: 'number',
+                  min: 1,
+                  message: 'Points must be a positive integer'
+                }]}
+              >
+                <InputNumber 
+                  placeholder="Enter points amount" 
+                  style={{ width: '100%', borderRadius: 6 }}
+                  min={1}
+                  step={1}
+                />
+              </Form.Item>
+              <Form.Item
+                name="remark"
+                label={<span style={{ fontWeight: 500 }}>Remark (Optional)</span>}
+              >
+                <Input 
+                  placeholder="e.g. Trivia winner" 
+                  style={{ borderRadius: 6 }}
+                />
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* Award All Guests Modal */}
+          <Modal
+            title={<span style={{ fontSize: 18, fontWeight: 500 }}>Award Points to All Guests</span>}
+            visible={awardAllModalVisible}
+            onOk={() => awardAllForm.submit()}
+            onCancel={() => {
+              setAwardAllModalVisible(false);
+              awardAllForm.resetFields();
+            }}
+            okText="Award to All"
+            okButtonProps={{ style: { borderRadius: 6 } }}
+            cancelButtonProps={{ style: { borderRadius: 6 } }}
+          >
+            <Form
+              form={awardAllForm}
+              onFinish={awardPoints}
+              layout="vertical"
+              style={{ marginTop: 24 }}
+            >
+              <Form.Item
+                name="amount"
+                label={<span style={{ fontWeight: 500 }}>Points Amount</span>}
+                rules={[{ 
+                  required: true, 
+                  message: 'Please input points amount!',
+                  type: 'number',
+                  min: 1,
+                  message: 'Points must be a positive integer'
+                }]}
+              >
+                <InputNumber 
+                  placeholder="Enter points amount" 
+                  style={{ width: '100%', borderRadius: 6 }}
+                  min={1}
+                  step={1}
+                />
+              </Form.Item>
+              <Form.Item
+                name="remark"
+                label={<span style={{ fontWeight: 500 }}>Remark (Optional)</span>}
+              >
+                <Input 
+                  placeholder="e.g. Participation reward" 
+                  style={{ borderRadius: 6 }}
+                />
+              </Form.Item>
+            </Form>
+          </Modal>
+        </>
       )}
     </Card>
   );

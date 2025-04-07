@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { message } from 'antd';
+import { message, Skeleton } from 'antd';
 import EventDetails from './EventDetails';
 import EventForm from './EventForm';
 import dayjs from 'dayjs';
+import NavBar from '../../NavBar';
 
 const Event = () => {
   const { eventId } = useParams();
@@ -138,26 +139,40 @@ const Event = () => {
     fetchCurrentUser();
     fetchEvent();
   }, [eventId]);
-
-  if (loading) return <div>Loading...</div>;
+  
+  if (loading) {
+    return (
+      <NavBar>
+        <div className="event-loading-container">
+          <Skeleton active paragraph={{ rows: 8 }} />
+          <Skeleton active paragraph={{ rows: 4 }} />
+        </div>
+      </NavBar>
+    );
+  }
   if (!event) return <div>Event not found</div>;
 
   return isEditMode ? (
-    <EventForm 
-    event={event}
-    onCancel={() => navigate(`/events/${eventId}`)}
-    onSubmit={updateEvent}
-    isManagerOrSuperuser={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
-  />
-  ) : (
-    <EventDetails 
+    <NavBar>
+      <EventForm 
       event={event}
-      onEdit={hasEditPrivileges() ? () => navigate(`/events/${eventId}/edit`) : null}
-      onDelete={hasEditPrivileges() ? deleteEvent : null}
-      showGuestManagement={canManageGuests()}
-      showStatus={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
-      currentUser={currentUser}
-    /> 
+      onCancel={() => navigate(`/events/${eventId}`)}
+      onSubmit={updateEvent}
+      isManagerOrSuperuser={['manager', 'superuser'].includes(currentUser?.role.toLowerCase())}
+      />
+    </NavBar>
+  ) : (
+    <NavBar>
+      <EventDetails 
+        event={event}
+        onEdit={hasEditPrivileges() ? () => navigate(`/events/${eventId}/edit`) : null}
+        onDelete={hasEditPrivileges() ? deleteEvent : null}
+        showGuestManagement={canManageGuests()}
+        showStatus={hasEditPrivileges()}
+        currentUser={currentUser}
+      /> 
+    
+    </NavBar>
   );
 };
 

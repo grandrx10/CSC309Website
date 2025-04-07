@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { message, Form, Input, DatePicker, Switch, Button, Card, InputNumber } from 'antd';
+import { message, Form, Input, DatePicker, Switch, Button, Card, InputNumber, Skeleton } from 'antd';
 import dayjs from 'dayjs';
+import NavBar from '../../NavBar';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -55,7 +56,7 @@ const EditEvent = () => {
         location: eventData.location,
         dateRange: [dayjs(eventData.startTime), dayjs(eventData.endTime)],
         capacity: eventData.capacity,
-        points: eventData.pointsAwarded,
+        points: eventData.pointsRemain,
         published: eventData.published
       });
     } catch (error) {
@@ -110,10 +111,20 @@ const EditEvent = () => {
     fetchEvent();
   }, [eventId]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <NavBar>
+        <div className="event-loading-container">
+          <Skeleton active paragraph={{ rows: 8 }} />
+          <Skeleton active paragraph={{ rows: 4 }} />
+        </div>
+      </NavBar>
+    );
+  }
   if (!event) return <div>Event not found</div>;
 
   return (
+    <NavBar>
     <Card
       title="Edit Event"
       extra={
@@ -174,7 +185,7 @@ const EditEvent = () => {
         {isManagerOrSuperuser() && (
           <Form.Item
             name="points"
-            label="Points Awarded"
+            label="Awardable Points"
           >
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
@@ -198,6 +209,8 @@ const EditEvent = () => {
         </Form.Item>
       </Form>
     </Card>
+    
+    </NavBar>
   );
 };
 

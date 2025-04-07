@@ -7,7 +7,7 @@ const SuccessMessage = ({ redemptionId, amount, utorId, remark }) => (
         <h2>Redemption Request Sent!</h2>
         <p>You've requested to redeem {amount} point(s).</p>
         <p>Redemption ID: {redemptionId}</p>
-        <p>Provide this QR code to a cashier to process the redemption.</p>
+        <p>Provide the redemption ID or this QR code to a cashier to complete the redemption.</p>
         <QRCode
             value={`Redemption ID - ${redemptionId}\nAmount - ${amount}\nRequested by - ${utorId}`}
         />

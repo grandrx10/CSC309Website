@@ -107,7 +107,7 @@ const storage = multer.diskStorage({
 // CLEARANCE MIDDLEWARE
 const isRegularOrHigher = (req, res, next) => {
     const userRole = req.user.role.toUpperCase(); // Assuming authentication middleware attaches the user role
-    if (['REGULAR','CASHIER', 'MANAGER', 'SUPERUSER'].includes(userRole)) {
+    if (['USER','REGULAR','CASHIER', 'MANAGER', 'SUPERUSER'].includes(userRole)) {
         next(); // User has clearance, proceed to the next middleware/route handler
     } else {
         console.log("userRole: " + userRole + " but needed: Regular or higher");

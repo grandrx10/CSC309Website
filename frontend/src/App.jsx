@@ -26,6 +26,8 @@ import Profile from './components/Profile/Profile';
 import EditProfile from './components/Profile/EditProfile';
 import ChangePassword from './components/Profile/ChangePassword';
 
+import NotFound from './pages/NotFound';
+
 function App() {
   return (
     <Router>
@@ -57,7 +59,8 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/profile/change-password" element={<ChangePassword />} />
-
+        
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );

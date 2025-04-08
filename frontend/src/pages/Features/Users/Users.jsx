@@ -118,37 +118,42 @@ const Users = () => {
             title: 'UTORid',
             dataIndex: 'utorid',
             key: 'utorid',
+            sorter: (a, b) => a.utorid.localeCompare(b.utorid),
         },
         {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
+            sorter: (a, b) => a.name.localeCompare(b.name),
         },
         {
             title: 'Email',
             dataIndex: 'email',
             key: 'email',
+            sorter: (a, b) => a.email.localeCompare(b.email),
         },
         {
             title: 'Role',
             dataIndex: 'role',
             key: 'role',
             render: (role) => {
-                // Normalize role strings so "User" and "Regular" both display as Regular.
                 const normalized = role.toLowerCase() === 'user' ? 'regular' : role.toLowerCase();
                 return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-            }
+            },
+            sorter: (a, b) => a.role.localeCompare(b.role),
         },
         {
             title: 'Points',
             dataIndex: 'points',
             key: 'points',
+            sorter: (a, b) => a.points - b.points,
         },
         {
             title: 'Created At',
             dataIndex: 'createdAt',
             key: 'createdAt',
             render: (value) => new Date(value).toLocaleString(),
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         },
     ];
 

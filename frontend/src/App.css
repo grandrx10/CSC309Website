@@ -171,3 +171,8 @@
     color: #005b15;
     font-weight: bold;
 }
+
+.not-found {
+    text-align: center;
+    margin-top: 50px;
+}

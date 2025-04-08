@@ -34,7 +34,7 @@ const Home = () => {
 
     return (
         <div>
-            <NavBar userRole={userInfo?.role.toLowerCase()}>
+            <NavBar>
                 <div class="home">
                     {userInfo ? (
                         <div>
@@ -47,7 +47,10 @@ const Home = () => {
                             />
                         </div>
                     ) : (
-                        <p>Loading user info...</p>
+                        <div>
+                            <p>Loading user info...</p>
+                            <p>If this doesn't load after a while, please log in again.</p>
+                        </div>
                     )}
                 </div>
             </NavBar>

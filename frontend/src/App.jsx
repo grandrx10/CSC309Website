@@ -14,14 +14,20 @@ import PromotionsListView from './pages/Features/Promotions/PromotionsListView';
 import PromotionDetailView from './pages/Features/Promotions/PromotionDetailView';
 import PromotionForm from './pages/Features/Promotions/PromotionForm';
 
-import Transactions from './pages/Features/Transactions/Transactions';
+import MyTransactions from './pages/Features/Transactions/MyTransactions';
 import Transfer from './pages/Features/Transactions/Transfer';
 import Redeem from './pages/Features/Transactions/Redeem';
 import Process from './pages/Features/Transactions/Process';
 import Purchase from './pages/Features/Transactions/Purchase';
+import AllTransactions from './pages/Features/Transactions/AllTransactions';
+
+import Users from './pages/Features/Users/Users';
+import UpdateUser from './pages/Features/Users/UpdateUser';
 import Profile from './components/Profile/Profile';
 import EditProfile from './components/Profile/EditProfile';
 import ChangePassword from './components/Profile/ChangePassword';
+
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -40,17 +46,21 @@ function App() {
         <Route path="/promotions/:id" element={<PromotionDetailView />} />
         <Route path="/promotions/:id/edit" element={<PromotionForm isEdit={true} />} />
 
-
-        <Route path="/transactions" element={<Transactions />} />
-        <Route path="/transfer" element={<Transfer />} />
-        <Route path="/redeem" element={<Redeem />} />
+        <Route path="/transactions/me" element={<MyTransactions />} />
+        <Route path="/transactions/transfer" element={<Transfer />} />
+        <Route path="/transactions/redeem" element={<Redeem />} />
         <Route path="/transactions/process" element={<Process />} />
         <Route path="/transactions/purchase" element={<Purchase />} />
+        <Route path="/transactions/all" element={<AllTransactions />} />
+
+        <Route path="/users" element={<Users />} />
+        <Route path="/users/update" element={<UpdateUser />} />
         
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/profile/change-password" element={<ChangePassword />} />
-
+        
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );

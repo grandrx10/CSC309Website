@@ -21,7 +21,7 @@ const port = (() => {
 const express = require("express");
 const app = express();
 app.use(express.json());
-const multer =  require('multer');
+const multer = require('multer');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
@@ -62,52 +62,52 @@ const authenticateUser = (req, res, next) => {
 const validatePromotions = async (userId, promotionIds) => {
     const promotions = [];
     for (const promotionId of promotionIds) {
-      const promotion = await prisma.promotion.findUnique({
-        where: { id: promotionId },
-      });
-  
-      if (!promotion) {
-        throw new Error(`promotion with ID ${promotionId} does not exist`);
-      }
-  
-      const usage = await prisma.usage.findFirst({
-        where: {
-          userId,
-          promotionId: promotion.id,
-        },
-      });
-  
-      if (usage) {
-        throw new Error(`promotion with ID ${promotionId} has already been used`);
-      }
-  
-      promotions.push(promotion);
+        const promotion = await prisma.promotion.findUnique({
+            where: { id: promotionId },
+        });
+
+        if (!promotion) {
+            throw new Error(`promotion with ID ${promotionId} does not exist`);
+        }
+
+        const usage = await prisma.usage.findFirst({
+            where: {
+                userId,
+                promotionId: promotion.id,
+            },
+        });
+
+        if (usage) {
+            throw new Error(`promotion with ID ${promotionId} has already been used`);
+        }
+
+        promotions.push(promotion);
     }
     return promotions;
-  };
+};
 
 // DISK STORAGE MANAGEMENT
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      const uploadDir = path.join(__dirname, 'uploads/avatars');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true }); // Create the directory if it doesn't exist
-      }
-      cb(null, uploadDir); // Save files to the uploads/avatars directory
+        const uploadDir = path.join(__dirname, 'uploads/avatars');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true }); // Create the directory if it doesn't exist
+        }
+        cb(null, uploadDir); // Save files to the uploads/avatars directory
     },
     filename: (req, file, cb) => {
-      const userId = req.user.userId; // Assuming authentication middleware attaches the user ID
-      const ext = path.extname(file.originalname); // Get the file extension
-      cb(null, `${userId}${ext}`); // Save the file as <userId>.<ext>
+        const userId = req.user.userId; // Assuming authentication middleware attaches the user ID
+        const ext = path.extname(file.originalname); // Get the file extension
+        cb(null, `${userId}${ext}`); // Save the file as <userId>.<ext>
     },
-  });
-  
-  const upload = multer({ storage });
+});
+
+const upload = multer({ storage });
 
 // CLEARANCE MIDDLEWARE
 const isRegularOrHigher = (req, res, next) => {
     const userRole = req.user.role.toUpperCase(); // Assuming authentication middleware attaches the user role
-    if (['USER','REGULAR','CASHIER', 'MANAGER', 'SUPERUSER'].includes(userRole)) {
+    if (['USER', 'REGULAR', 'CASHIER', 'MANAGER', 'SUPERUSER'].includes(userRole)) {
         next(); // User has clearance, proceed to the next middleware/route handler
     } else {
         console.log("userRole: " + userRole + " but needed: Regular or higher");
@@ -137,7 +137,7 @@ const isManagerOrHigher = (req, res, next) => {
 
 // API BEGINS
 app.post('/users', authenticateUser, isCashierOrHigher, async (req, res) => {
-    const { utorid, name, email} = req.body;
+    const { utorid, name, email } = req.body;
 
     if (!utorid || !name || !email) {
         return res.status(400).json({ error: 'utorid, name, email, and password are required' });
@@ -205,7 +205,7 @@ app.post('/users', authenticateUser, isCashierOrHigher, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'user creation failed' });
-    }   
+    }
 });
 
 app.get('/users', authenticateUser, isManagerOrHigher, async (req, res) => {
@@ -216,8 +216,8 @@ app.get('/users', authenticateUser, isManagerOrHigher, async (req, res) => {
     let limit = parseInt(req.query.limit, 10) || 10; // Default to 10 users per page
 
     // Ensure page and limit are valid
-    if (page < 1) {return res.status(400).json({err: "DONT DO THAT!"})};
-    if (limit < 1) {return res.status(400).json({err: "DONT DO THAT!"})};
+    if (page < 1) { return res.status(400).json({ err: "DONT DO THAT!" }) };
+    if (limit < 1) { return res.status(400).json({ err: "DONT DO THAT!" }) };
 
     try {
         // Build the filter object
@@ -280,6 +280,9 @@ app.get('/users', authenticateUser, isManagerOrHigher, async (req, res) => {
             birthday: user.birthday ? user.birthday.toISOString().split('T')[0] : null,
             createdAt: user.createdAt.toISOString(),
             lastLogin: user.lastLogin ? user.lastLogin.toISOString() : null,
+            role: user.role
+                ? user.role.toLowerCase().replace(/^./, (char) => char.toUpperCase())
+                : user.role
         }));
         return res.status(200).json({
             count,
@@ -291,7 +294,7 @@ app.get('/users', authenticateUser, isManagerOrHigher, async (req, res) => {
     }
 });
 
-app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avatar'), async(req, res) => {
+app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avatar'), async (req, res) => {
     const { name, email, birthday } = req.body;
     const userId = req.user.userId;
 
@@ -303,21 +306,21 @@ app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avata
         // Validate name length
         if (name && (name.length < 1 || name.length > 50)) {
             console.log("name bad")
-          return res.status(400).json({ error: 'name must be between 1 and 50 characters' });
+            return res.status(400).json({ error: 'name must be between 1 and 50 characters' });
         }
-    
+
         // Validate email format (UofT email)
         if (email !== null) {
-          if (!email || !email.trim()) {
-            console.log("email bad")
-            return res.status(400).json({ error: 'email cannot be empty' });
-          }
-          if (!/^[^\s@]+@mail\.utoronto\.ca$/.test(email)) {
-            console.log("email not uoft")
-            return res.status(400).json({ error: 'email must be a valid University of Toronto email' });
-          }
+            if (!email || !email.trim()) {
+                console.log("email bad")
+                return res.status(400).json({ error: 'email cannot be empty' });
+            }
+            if (!/^[^\s@]+@mail\.utoronto\.ca$/.test(email)) {
+                console.log("email not uoft")
+                return res.status(400).json({ error: 'email must be a valid University of Toronto email' });
+            }
         }
-    
+
         // Validate birthday format and check if it's a real date
         if (birthday) {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
@@ -330,8 +333,8 @@ app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avata
 
             // Check if date is valid and matches the input
             if (
-                date.getFullYear() !== year || 
-                date.getMonth() + 1 !== month || 
+                date.getFullYear() !== year ||
+                date.getMonth() + 1 !== month ||
                 date.getDate() !== day
             ) {
                 console.log("birthday doesnt exist")
@@ -339,114 +342,114 @@ app.patch('/users/me', authenticateUser, isRegularOrHigher, upload.single('avata
             }
         }
 
-    
+
         // Prepare the update data
         const updateData = {};
         if (name !== null) updateData.name = name;
         if (email !== null && email.trim()) updateData.email = email.trim();
         if (birthday !== null) updateData.birthday = new Date(birthday);
-    
+
         // Handle avatar file upload
         if (req.file) {
-          const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-          updateData.avatarUrl = avatarUrl;
+            const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+            updateData.avatarUrl = avatarUrl;
         }
-    
+
         // Update the user
         const updatedUser = await prisma.user.update({
-          where: { id: userId },
-          data: updateData,
-          select: {
-            id: true,
-            utorid: true,
-            name: true,
-            email: true,
-            birthday: true,
-            role: true,
-            points: true,
-            createdAt: true,
-            lastLogin: true,
-            verified: true,
-            avatarUrl: true,
-          },
+            where: { id: userId },
+            data: updateData,
+            select: {
+                id: true,
+                utorid: true,
+                name: true,
+                email: true,
+                birthday: true,
+                role: true,
+                points: true,
+                createdAt: true,
+                lastLogin: true,
+                verified: true,
+                avatarUrl: true,
+            },
         });
-        
+
         // Format the response to ensure all date fields are strings
         const formattedUser = {
-          ...updatedUser,
-          birthday: updatedUser.birthday ? updatedUser.birthday.toISOString().split('T')[0] : null,
-          createdAt: updatedUser.createdAt.toISOString(),
-          lastLogin: updatedUser.lastLogin ? updatedUser.lastLogin.toISOString() : "",
+            ...updatedUser,
+            birthday: updatedUser.birthday ? updatedUser.birthday.toISOString().split('T')[0] : null,
+            createdAt: updatedUser.createdAt.toISOString(),
+            lastLogin: updatedUser.lastLogin ? updatedUser.lastLogin.toISOString() : "",
         };
-    
+
         // Respond with the updated user
         res.status(200).json(formattedUser);
-      } catch (err) {
+    } catch (err) {
         console.error(err);
         console.log(req.body);
-        
+
         // Handle unique constraint violations (e.g., duplicate email)
         if (err.code === 'P2002') {
-          return res.status(400).json({ error: 'email already in use' });
+            return res.status(400).json({ error: 'email already in use' });
         }
-        
+
         res.status(500).json({ error: 'failed to update user' });
-      }
+    }
 });
 
 
 app.get('/users/me', authenticateUser, isRegularOrHigher, async (req, res) => {
     const userId = req.user.userId; // Assuming authentication middleware attaches the user ID
-    try {   
-      // Find the user
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          utorid: true,
-          name: true,
-          email: true,
-          birthday: true,
-          role: true,
-          points: true,
-          createdAt: true,
-          lastLogin: true,
-          verified: true,
-          avatarUrl: true,
-        },
-      });
-  
-      if (!user) {
-        return res.status(404).json({ error: 'user not found' });
-      }
-  
-      // Find one-time promotions that the user has not used yet
-      const availablePromotions = await prisma.promotion.findMany({
-        where: {
-          isOneTime: true, // Only one-time promotions
-          usages: {
-            none: {
-              userId: userId, // Promotions not used by this user
+    try {
+        // Find the user
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                utorid: true,
+                name: true,
+                email: true,
+                birthday: true,
+                role: true,
+                points: true,
+                createdAt: true,
+                lastLogin: true,
+                verified: true,
+                avatarUrl: true,
             },
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-          minSpending: true,
-          rate: true,
-          points: true,
-        },
-      });
+        });
 
-      // Respond with the user and available promotions
-      res.status(200).json({
-        ...user,
-        promotions: availablePromotions,
-      });
+        if (!user) {
+            return res.status(404).json({ error: 'user not found' });
+        }
+
+        // Find one-time promotions that the user has not used yet
+        const availablePromotions = await prisma.promotion.findMany({
+            where: {
+                isOneTime: true, // Only one-time promotions
+                usages: {
+                    none: {
+                        userId: userId, // Promotions not used by this user
+                    },
+                },
+            },
+            select: {
+                id: true,
+                name: true,
+                minSpending: true,
+                rate: true,
+                points: true,
+            },
+        });
+
+        // Respond with the user and available promotions
+        res.status(200).json({
+            ...user,
+            promotions: availablePromotions,
+        });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'failed to retrieve user' });
+        console.error(err);
+        res.status(500).json({ error: 'failed to retrieve user' });
     }
 });
 
@@ -454,19 +457,19 @@ app.patch('/users/me/password', authenticateUser, isRegularOrHigher, async (req,
     const { old: oldPassword, new: newPassword } = req.body;
     const userId = req.user.userId;
     if (!oldPassword || !newPassword) {
-        return res.status(400).json({error: "invalid package"});
+        return res.status(400).json({ error: "invalid package" });
     }
 
     try {
         const user = await prisma.user.findUnique({
-            where: {id: userId},
-            select: {password: true}
+            where: { id: userId },
+            select: { password: true }
         })
 
         if (!user) {
             return res.status(404).json({ error: 'user not found' });
         }
-        if ( oldPassword !== user.password) {
+        if (oldPassword !== user.password) {
             return res.status(403).json({ error: 'incorrect current password' });
         }
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,20}$/;
@@ -563,10 +566,11 @@ app.get('/users/:userId', authenticateUser, async (req, res) => {
         return res.status(500).json({ error: "Failed to retrieve user" });
     }
 });
+
 app.patch('/users/:userId', authenticateUser, isManagerOrHigher, async (req, res) => {
     const { email, verified, suspicious, role } = req.body;
     const { userId } = req.params;
-    const userRole = req.user.role;
+    const userRole = req.user.role.toLowerCase();
 
     const parsedUserId = parseInt(userId);
     if (isNaN(parsedUserId)) {
@@ -583,7 +587,7 @@ app.patch('/users/:userId', authenticateUser, isManagerOrHigher, async (req, res
             if (value.toLowerCase() === 'true') return true;
             if (value.toLowerCase() === 'false') return false;
         }
-        return null; 
+        return null;
     };
 
     try {
@@ -612,15 +616,16 @@ app.patch('/users/:userId', authenticateUser, isManagerOrHigher, async (req, res
         }
 
         if (role !== null) {
+            const normalizedRole = role.toLowerCase();
             const validRoles = ["regular", "cashier", "manager", "superuser"];
-            if (!validRoles.includes(role)) {
+            if (!validRoles.includes(normalizedRole)) {
                 return res.status(400).json({ error: 'Invalid role. Must be one of "regular", "cashier", "manager", or "superuser".' });
             }
-            if (userRole === "manager" && !["cashier", "regular"].includes(role)) {
+            if (userRole === "manager" && !["cashier", "regular"].includes(normalizedRole)) {
                 return res.status(403).json({ error: 'Managers can only assign "cashier" or "regular" roles.' });
             }
-            updateData.role = role;
-            if (role === 'cashier') {
+            updateData.role = normalizedRole.toUpperCase();
+            if (normalizedRole === 'cashier') {
                 updateData.suspicious = false;
             }
         }
@@ -648,7 +653,10 @@ app.patch('/users/:userId', authenticateUser, isManagerOrHigher, async (req, res
             },
         });
 
-        return res.status(200).json(updatedUser);
+        return res.status(200).json({
+            ...updatedUser,
+            ...(updatedUser.role && { role: updatedUser.role.toUpperCase() })
+        });
     } catch (err) {
         console.error(err);
         if (err.code === 'P2025') {
@@ -661,7 +669,7 @@ app.patch('/users/:userId', authenticateUser, isManagerOrHigher, async (req, res
 
 // AUTHORIZATION TOKENS
 app.post('/auth/tokens', async (req, res) => {
-    const {utorid, password} = req.body;
+    const { utorid, password } = req.body;
     if (!utorid || !password) {
         return res.status(400).json({ error: 'utorid and password are required' });
     }
@@ -669,7 +677,7 @@ app.post('/auth/tokens', async (req, res) => {
     try {
         // Find the user by UTORid
         const user = await prisma.user.findUnique({
-          where: { utorid },
+            where: { utorid },
         });
 
         if (!user || password !== user.password) { // Assuming passwords are stored in plaintext
@@ -681,7 +689,7 @@ app.post('/auth/tokens', async (req, res) => {
             data: { lastLogin: new Date() },
         });
         const token = jwt.sign(
-            { userId: user.id, role: user.role, utorid: utorid, points: user.points, name: user.name, suspicious: user.suspicious}, // Payload
+            { userId: user.id, role: user.role, utorid: utorid, points: user.points, name: user.name, suspicious: user.suspicious }, // Payload
             jwt_secret, // Secret key (store this in environment variables)
             { expiresIn: '1h' } // Token expiration time
         );
@@ -700,7 +708,7 @@ app.post('/auth/tokens', async (req, res) => {
 });
 
 app.post('/auth/resets', async (req, res) => {
-    const {utorid} = req.body;
+    const { utorid } = req.body;
     const clientIp = req.ip;
 
     if (!utorid) {
@@ -717,7 +725,7 @@ app.post('/auth/resets', async (req, res) => {
             return res.status(404).json({
                 expiresAt: null,
                 resetToken: null
-              });
+            });
         }
         const lastRequestTime = requestTimestamps[clientIp];
 
@@ -755,7 +763,7 @@ app.post('/auth/resets/:resetToken', async (req, res) => {
 
     // Validate the payload
     if (!utorid || !password) {
-        return res.status(400).json({ 
+        return res.status(400).json({
             error: 'utorid and password are required',
             expiresAt: null,
             resetToken: null,
@@ -779,11 +787,11 @@ app.post('/auth/resets/:resetToken', async (req, res) => {
         });
 
         const reset_token = await prisma.user.findUnique({
-            where: {resetToken}
+            where: { resetToken }
         });
 
-        if (!reset_token){
-            return res.status(404).json({ 
+        if (!reset_token) {
+            return res.status(404).json({
                 error: 'resetToken not found',
                 expiresAt: null,
                 resetToken: null,
@@ -792,7 +800,7 @@ app.post('/auth/resets/:resetToken', async (req, res) => {
 
         // If no user is found, return 404 (Not Found)
         if (!user) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 error: 'user not found',
                 expiresAt: null,
                 resetToken: null,
@@ -801,7 +809,7 @@ app.post('/auth/resets/:resetToken', async (req, res) => {
 
         // Check if the resetToken matches the user's resetToken
         if (user.resetToken !== resetToken) {
-            return res.status(401).json({ 
+            return res.status(401).json({
                 error: 'reset token does not match utorid',
                 expiresAt: null,
                 resetToken: null,
@@ -810,7 +818,7 @@ app.post('/auth/resets/:resetToken', async (req, res) => {
 
         // Check if the resetToken has expired
         if (user.expiresAt < new Date()) {
-            return res.status(401).json({ 
+            return res.status(401).json({
                 error: 'reset token expired',
                 expiresAt: null,
                 resetToken: null,
@@ -828,14 +836,14 @@ app.post('/auth/resets/:resetToken', async (req, res) => {
         });
 
         // Respond with success
-        res.status(200).json({ 
+        res.status(200).json({
             message: 'password reset successfully',
             expiresAt: null,
             resetToken: null,
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'failed to reset password',
             expiresAt: null,
             resetToken: null,
@@ -849,11 +857,11 @@ app.post('/transactions', authenticateUser, async (req, res) => {
     const createdBy = req.user.utorid;
     const userRole = req.user.role.toUpperCase();
 
-    const promotionIds = typeof req.body.promotionIds === 'string' 
-        ? req.body.promotionIds.split(',').map(Number) 
-        : Array.isArray(req.body.promotionIds) 
-          ? req.body.promotionIds 
-          : [];
+    const promotionIds = typeof req.body.promotionIds === 'string'
+        ? req.body.promotionIds.split(',').map(Number)
+        : Array.isArray(req.body.promotionIds)
+            ? req.body.promotionIds
+            : [];
 
     try {
         if (type !== 'purchase' && type !== 'adjustment') {
@@ -985,119 +993,116 @@ app.post('/transactions', authenticateUser, async (req, res) => {
     }
 });
 app.get('/transactions', authenticateUser, isManagerOrHigher, async (req, res) => {
-    const {name, createdBy, suspicious, promotionId, type, relatedId, amount, operator, page=1, limit=10} = req.query;
+    const { name, createdBy, suspicious, promotionId, type, relatedId, amount, operator, page = 1, limit = 10 } = req.query;
     try {
         // Build the filter object
         const filters = {};
-    
-        // Filter by name (utorid or name)
+
+        // Filter by name
         if (name) {
-          filters.OR = [
-            { utorid: { contains: name, mode: 'insensitive' } },
-            { user: { name: { contains: name, mode: 'insensitive' } } },
-          ];
+            filters.utorid = { contains: name.toLowerCase() };
         }
-    
+
         // Filter by createdBy
         if (createdBy) {
-          filters.createdBy = createdBy;
+            filters.createdBy = createdBy;
         }
-    
+
         // Filter by suspicious
         if (suspicious !== null && suspicious !== undefined) {
-          filters.suspicious = suspicious === 'true';
+            filters.suspicious = suspicious === 'true';
         }
-    
+
         // Filter by promotionId
         if (promotionId && promotionId !== undefined) {
-          filters.promotions = { some: { id: parseInt(promotionId) } };
+            filters.promotions = { some: { id: parseInt(promotionId) } };
         }
-    
+
         // Filter by type
         if (type && type !== undefined) {
-          filters.type = type;
+            filters.type = type;
         }
-    
+
         // Filter by relatedId (must be used with type)
         if (relatedId && relatedId !== undefined) {
-          if (!type) {
-            return res.status(400).json({ error: 'relatedId must be used with type' });
-          }
-          filters.relatedId = parseInt(relatedId);
+            if (!type) {
+                return res.status(400).json({ error: 'relatedId must be used with type' });
+            }
+            filters.relatedId = parseInt(relatedId);
         }
-    
+
         // Filter by amount (must be used with operator)
         if (amount !== null && amount !== undefined) {
-          if (!operator || !['gte', 'lte'].includes(operator)) {
-            return res.status(400).json({ error: 'operator must be "gte" or "lte" when filtering by amount' });
-          }
-          filters.amount = { [operator]: parseFloat(amount) };
+            if (!operator || !['gte', 'lte'].includes(operator)) {
+                return res.status(400).json({ error: 'operator must be "gte" or "lte" when filtering by amount' });
+            }
+            filters.amount = { [operator]: parseFloat(amount) };
         }
-    
+
         // Get the total count of transactions matching the filters
         const count = await prisma.transaction.count({ where: filters });
-    
+
         // Get the paginated list of transactions
         const transactions = await prisma.transaction.findMany({
-          where: filters,
-          skip: (page - 1) * limit,
-          take: parseInt(limit),
-          include: {
-            promotions: {
-              select: {
-                id: true,
-              },
+            where: filters,
+            skip: (page - 1) * limit,
+            take: parseInt(limit),
+            include: {
+                promotions: {
+                    select: {
+                        id: true,
+                    },
+                },
+                /* user: {
+                    select: {
+                        name: true
+                    }
+                } */
             },
-            user: {
-              select: {
-                name: true
-              }
+            orderBy: {
+                createdAt: 'desc'
             }
-          },
-          orderBy: {
-            createdAt: 'desc'
-          }
         });
-    
+
         // Format the response
         const results = transactions.map((transaction) => {
-          const baseResponse = {
-            id: transaction.id,
-            utorid: transaction.utorid,
-            amount: transaction.amount, // Always return the actual amount
-            type: transaction.type,
-            spent: transaction.spent,
-            promotionIds: transaction.promotions.map((promotion) => promotion.id),
-            suspicious: transaction.suspicious,
-            remark: transaction.remark,
-            createdBy: transaction.createdBy,
-            createdAt: transaction.createdAt,
-            name: transaction.user?.name || null
-          };
-          
-          // Include relatedId for specific types
-          if (['adjustment', 'transfer', 'redemption', 'event']
-              .includes(transaction.type.toLowerCase())) {
-            baseResponse.relatedId = transaction.relatedId;
-          }
-          
-          // For redemptions, include redeemed as a positive value
-          if (transaction.type.toLowerCase() === 'redemption') {
-            baseResponse.redeemed = Math.abs(transaction.amount);
-          }
-          
-          return baseResponse;
+            const baseResponse = {
+                id: transaction.id,
+                utorid: transaction.utorid,
+                amount: transaction.amount, // Always return the actual amount
+                type: transaction.type,
+                spent: transaction.spent,
+                promotionIds: transaction.promotions.map((promotion) => promotion.id),
+                suspicious: transaction.suspicious,
+                remark: transaction.remark,
+                createdBy: transaction.createdBy,
+                createdAt: transaction.createdAt,
+                name: transaction.user?.name || null
+            };
+
+            // Include relatedId for specific types
+            if (['adjustment', 'transfer', 'redemption', 'event']
+                .includes(transaction.type.toLowerCase())) {
+                baseResponse.relatedId = transaction.relatedId;
+            }
+
+            // For redemptions, include redeemed as a positive value
+            if (transaction.type.toLowerCase() === 'redemption') {
+                baseResponse.redeemed = Math.abs(transaction.amount);
+            }
+
+            return baseResponse;
         });
-          
+
         // Respond with the count and results
         res.status(200).json({
-          count,
-          results,
+            count,
+            results,
         });
-      } catch (err) {
+    } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'failed to retrieve transactions' });
-      }
+    }
 });
 app.patch('/transactions/:transactionId/suspicious', authenticateUser, isManagerOrHigher, async (req, res) => {
     const { transactionId } = req.params;
@@ -1143,7 +1148,7 @@ app.patch('/transactions/:transactionId/suspicious', authenticateUser, isManager
         const [updatedTransaction] = await prisma.$transaction([
             prisma.transaction.update({
                 where: { id: parseInt(transactionId) },
-                data: { 
+                data: {
                     suspicious,
                     amount: Math.round(newPoints) // Now updating `amount` in the transaction
                 },
@@ -1181,197 +1186,197 @@ app.patch('/transactions/:transactionId/suspicious', authenticateUser, isManager
 });
 
 app.get('/transactions/:transactionId', authenticateUser, isManagerOrHigher, async (req, res) => {
-    const {transactionId} = req.params;
+    const { transactionId } = req.params;
     try {
         // Find the transaction by ID
         const transaction = await prisma.transaction.findUnique({
-          where: { id: parseInt(transactionId) },
-          include: {
-            promotions: {
-              select: {
-                id: true,
-              },
+            where: { id: parseInt(transactionId) },
+            include: {
+                promotions: {
+                    select: {
+                        id: true,
+                    },
+                },
             },
-          },
         });
-    
+
         if (!transaction) {
-          return res.status(404).json({ error: 'transaction not found' });
+            return res.status(404).json({ error: 'transaction not found' });
         }
-    
+
         // Format the response
         const response = {
-          id: transaction.id,
-          utorid: transaction.utorid,
-          type: transaction.type,
-          spent: transaction.spent,
-          amount: transaction.amount,
-          relatedId: transaction.relatedId,
-          promotionIds: transaction.promotions.map((promotion) => promotion.id),
-          suspicious: transaction.suspicious,
-          remark: transaction.remark,
-          createdBy: transaction.createdBy,
+            id: transaction.id,
+            utorid: transaction.utorid,
+            type: transaction.type,
+            spent: transaction.spent,
+            amount: transaction.amount,
+            relatedId: transaction.relatedId,
+            promotionIds: transaction.promotions.map((promotion) => promotion.id),
+            suspicious: transaction.suspicious,
+            remark: transaction.remark,
+            createdBy: transaction.createdBy,
         };
-    
+
         // Respond with the transaction details
         res.status(200).json(response);
-      } catch (err) {
+    } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'failed to retrieve transaction' });
-      }
+    }
 });
 
 // SELF TRANSACTIONS
 app.post('/users/me/transactions', authenticateUser, isRegularOrHigher, async (req, res) => {
-    const {type, amount, remark = ''} = req.body;
+    const { type, amount, remark = '' } = req.body;
     const userId = req.user.userId;
     const utorid = req.user.utorid; // Access the authenticated user's UTORid
 
-  try {
-    // Validate the transaction type
-    if (type !== 'redemption') {
-      return res.status(400).json({ error: 'type must be "redemption"' });
+    try {
+        // Validate the transaction type
+        if (type !== 'redemption') {
+            return res.status(400).json({ error: 'type must be "redemption"' });
+        }
+
+        // Validate the amount (if provided)
+        if (amount !== null) {
+            if (typeof amount !== 'number' || amount <= 0 || !Number.isInteger(amount)) {
+                return res.status(400).json({ error: 'amount must be a positive integer' });
+            }
+        }
+
+        // Find the user
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'user not found' });
+        }
+
+        // Check if the user is verified
+        if (!user.verified) {
+            return res.status(403).json({ error: 'user is not verified' });
+        }
+
+        // Check if the requested amount exceeds the user's point balance
+        if (amount !== null && user.points < amount) {
+            return res.status(400).json({ error: 'requested amount exceeds user point balance' });
+        }
+
+        // Create the redemption transaction
+        const transaction = await prisma.transaction.create({
+            data: {
+                utorid,
+                type: 'redemption',
+                amount: amount || 0, // Use 0 if amount is not provided
+                remark,
+                createdBy: utorid,
+                processedBy: null, // Initially unprocessed
+            },
+        });
+
+        // Respond with the created transaction
+        res.status(201).json({
+            id: transaction.id,
+            utorid: transaction.utorid,
+            type: transaction.type,
+            processedBy: transaction.processedBy,
+            amount: transaction.amount,
+            remark: transaction.remark,
+            createdBy: transaction.createdBy,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'failed to create redemption transaction' });
     }
-
-    // Validate the amount (if provided)
-    if (amount !== null) {
-      if (typeof amount !== 'number' || amount <= 0 || !Number.isInteger(amount)) {
-        return res.status(400).json({ error: 'amount must be a positive integer' });
-      }
-    }
-
-    // Find the user
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'user not found' });
-    }
-
-    // Check if the user is verified
-    if (!user.verified) {
-      return res.status(403).json({ error: 'user is not verified' });
-    }
-
-    // Check if the requested amount exceeds the user's point balance
-    if (amount !== null && user.points < amount) {
-      return res.status(400).json({ error: 'requested amount exceeds user point balance' });
-    }
-
-    // Create the redemption transaction
-    const transaction = await prisma.transaction.create({
-      data: {
-        utorid,
-        type: 'redemption',
-        amount: amount || 0, // Use 0 if amount is not provided
-        remark,
-        createdBy: utorid,
-        processedBy: null, // Initially unprocessed
-      },
-    });
-
-    // Respond with the created transaction
-    res.status(201).json({
-      id: transaction.id,
-      utorid: transaction.utorid,
-      type: transaction.type,
-      processedBy: transaction.processedBy,
-      amount: transaction.amount,
-      remark: transaction.remark,
-      createdBy: transaction.createdBy,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'failed to create redemption transaction' });
-  }
 })
 
 app.get('/users/me/transactions', authenticateUser, isRegularOrHigher, async (req, res) => {
     const {
-      type,
-      relatedId,
-      promotionId,
-      amount,
-      operator,
-      page = 1,
-      limit = 10,
+        type,
+        relatedId,
+        promotionId,
+        amount,
+        operator,
+        page = 1,
+        limit = 10,
     } = req.query;
     const userId = req.user.userId; // Access the authenticated user's ID
-  
-    try {
-      // Build the filter object
-      const filters = { utorid: req.user.utorid }; // Only include transactions owned by the user
-  
-      // Filter by type
-      if (type) {
-        filters.type = type;
-      }
-  
-      // Filter by relatedId (must be used with type)
-      if (relatedId) {
-        if (!type) {
-          return res.status(400).json({ error: 'relatedId must be used with type' });
-        }
-        filters.relatedId = parseInt(relatedId);
-      }
-  
-      // Filter by promotionId
-      if (promotionId) {
-        filters.promotions = { some: { id: parseInt(promotionId) } };
-      }
-  
-      // Filter by amount (must be used with operator)
-      if (amount !== null) {
-        if (!operator || !['gte', 'lte'].includes(operator)) {
-          return res.status(400).json({ error: 'operator must be "gte" or "lte" when filtering by amount' });
-        }
-        filters.amount = { [operator]: parseFloat(amount) };
-      }
-  
-      // Get the total count of transactions matching the filters
-      const count = await prisma.transaction.count({ where: filters });
-  
-      // Get the paginated list of transactions
-      const transactions = await prisma.transaction.findMany({
-        where: filters,
-        skip: (page - 1) * limit, // Calculate the offset
-        take: parseInt(limit), // Number of transactions per page
-        include: {
-          promotions: {
-            select: {
-              id: true,
-            },
-          },
-        },
-      });
-  
-      // Format the response
-      const results = transactions.map((transaction) => ({
-        id: transaction.id,
-        type: transaction.type,
-        spent: transaction.spent,
-        amount: transaction.amount,
-        promotionIds: transaction.promotions.map((promotion) => promotion.id),
-        remark: transaction.remark,
-        createdBy: transaction.createdBy,
-        ...(transaction.type === 'adjustment' || transaction.type === 'transfer' || transaction.type === 'redemption'
-          ? { relatedId: transaction.relatedId }
-          : {}),
-      }));
-  
-      // Respond with the count and results
-      res.status(200).json({
-        count,
-        results,
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'failed to retrieve transactions' });
-    }
-  });
 
-app.post('/users/:userId/transactions', authenticateUser, isRegularOrHigher, async (req, res)=> {
+    try {
+        // Build the filter object
+        const filters = { utorid: req.user.utorid }; // Only include transactions owned by the user
+
+        // Filter by type
+        if (type) {
+            filters.type = type;
+        }
+
+        // Filter by relatedId (must be used with type)
+        if (relatedId) {
+            if (!type) {
+                return res.status(400).json({ error: 'relatedId must be used with type' });
+            }
+            filters.relatedId = parseInt(relatedId);
+        }
+
+        // Filter by promotionId
+        if (promotionId) {
+            filters.promotions = { some: { id: parseInt(promotionId) } };
+        }
+
+        // Filter by amount (must be used with operator)
+        if (amount !== null) {
+            if (!operator || !['gte', 'lte'].includes(operator)) {
+                return res.status(400).json({ error: 'operator must be "gte" or "lte" when filtering by amount' });
+            }
+            filters.amount = { [operator]: parseFloat(amount) };
+        }
+
+        // Get the total count of transactions matching the filters
+        const count = await prisma.transaction.count({ where: filters });
+
+        // Get the paginated list of transactions
+        const transactions = await prisma.transaction.findMany({
+            where: filters,
+            skip: (page - 1) * limit, // Calculate the offset
+            take: parseInt(limit), // Number of transactions per page
+            include: {
+                promotions: {
+                    select: {
+                        id: true,
+                    },
+                },
+            },
+        });
+
+        // Format the response
+        const results = transactions.map((transaction) => ({
+            id: transaction.id,
+            type: transaction.type,
+            spent: transaction.spent,
+            amount: transaction.amount,
+            promotionIds: transaction.promotions.map((promotion) => promotion.id),
+            remark: transaction.remark,
+            createdBy: transaction.createdBy,
+            ...(transaction.type === 'adjustment' || transaction.type === 'transfer' || transaction.type === 'redemption'
+                ? { relatedId: transaction.relatedId }
+                : {}),
+        }));
+
+        // Respond with the count and results
+        res.status(200).json({
+            count,
+            results,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'failed to retrieve transactions' });
+    }
+});
+
+app.post('/users/:userId/transactions', authenticateUser, isRegularOrHigher, async (req, res) => {
     const { userId } = req.params;
     const { type, amount, remark = '' } = req.body;
     const senderUtorid = req.user.utorid; // Assuming authentication middleware attaches the sender's UTORid
@@ -1410,63 +1415,63 @@ app.post('/users/:userId/transactions', authenticateUser, isRegularOrHigher, asy
         // console.log(amount);
         if (sender.points < amount) {
             console.log("Not enough points");
-        return res.status(400).json({ error: 'sender does not have enough points' });
+            return res.status(400).json({ error: 'sender does not have enough points' });
         }
 
         // Find the recipient
         const recipient = await prisma.user.findUnique({
-        where: { id: parseInt(userId) },
+            where: { id: parseInt(userId) },
         });
 
         if (!recipient) {
-        return res.status(404).json({ error: 'recipient not found' });
+            return res.status(404).json({ error: 'recipient not found' });
         }
 
         // Deduct points from the sender
         await prisma.user.update({
-        where: { id: senderId },
-        data: { points: sender.points - amount },
+            where: { id: senderId },
+            data: { points: sender.points - amount },
         });
 
         // Credit points to the recipient
         await prisma.user.update({
-        where: { id: parseInt(userId) },
-        data: { points: recipient.points + amount },
+            where: { id: parseInt(userId) },
+            data: { points: recipient.points + amount },
         });
 
         // Create the sender's transaction
         const senderTransaction = await prisma.transaction.create({
-        data: {
-            utorid: sender.utorid,
-            type: 'transfer',
-            amount: -amount, // Deduct points
-            relatedId: parseInt(userId), // Recipient's user ID
-            remark,
-            createdBy: senderUtorid,
-        },
+            data: {
+                utorid: sender.utorid,
+                type: 'transfer',
+                amount: -amount, // Deduct points
+                relatedId: parseInt(userId), // Recipient's user ID
+                remark,
+                createdBy: senderUtorid,
+            },
         });
 
         // Create the recipient's transaction
         const recipientTransaction = await prisma.transaction.create({
-        data: {
-            utorid: recipient.utorid,
-            type: 'transfer',
-            amount: amount, // Credit points
-            relatedId: senderId, // Sender's user ID
-            remark,
-            createdBy: senderUtorid,
-        },
+            data: {
+                utorid: recipient.utorid,
+                type: 'transfer',
+                amount: amount, // Credit points
+                relatedId: senderId, // Sender's user ID
+                remark,
+                createdBy: senderUtorid,
+            },
         });
 
         // Respond with the sender's transaction details
         res.status(201).json({
-        id: senderTransaction.id,
-        sender: sender.utorid,
-        recipient: recipient.utorid,
-        type: senderTransaction.type,
-        sent: -senderTransaction.amount,
-        remark: senderTransaction.remark,
-        createdBy: senderTransaction.createdBy,
+            id: senderTransaction.id,
+            sender: sender.utorid,
+            recipient: recipient.utorid,
+            type: senderTransaction.type,
+            sent: -senderTransaction.amount,
+            remark: senderTransaction.remark,
+            createdBy: senderTransaction.createdBy,
         });
     } catch (err) {
         console.error(err);
@@ -1474,7 +1479,7 @@ app.post('/users/:userId/transactions', authenticateUser, isRegularOrHigher, asy
     }
 });
 
-  app.patch('/transactions/:transactionId/processed', authenticateUser, isCashierOrHigher, async (req, res) => {
+app.patch('/transactions/:transactionId/processed', authenticateUser, isCashierOrHigher, async (req, res) => {
     const { transactionId } = req.params;
     const { processed } = req.body;
     const processedBy = req.user.utorid; // Assuming the user's UTORid is stored in the token
@@ -1669,7 +1674,7 @@ app.get('/events', authenticateUser, async (req, res) => {
     }
 
     if (page < 1 || limit < 1) {
-        return res.status(400).json({ error: "stfu dont do this"});
+        return res.status(400).json({ error: "stfu dont do this" });
     }
 
     try {
@@ -1908,11 +1913,11 @@ app.get('/events/:eventId', authenticateUser, async (req, res) => {
             pointsAwarded: isManagerOrHigher || isOrganizer ? event.pointsAwarded : undefined,
             published: isManagerOrHigher || isOrganizer ? event.published : undefined,
             organizers: event.organizers,
-            guests: isManagerOrHigher || isOrganizer ? 
+            guests: isManagerOrHigher || isOrganizer ?
                 event.guests.map(g => ({
                     ...g,
                     name: g.name || 'Guest' // Fallback for missing names
-                })) : 
+                })) :
                 undefined,
             numGuests: event.guests.length
         };
@@ -1946,7 +1951,7 @@ app.patch('/events/:eventId', authenticateUser, async (req, res) => {
 
         const isManagerOrHigher = ['MANAGER', 'SUPERUSER'].includes(userRole.toUpperCase());
         const isOrganizer = existingEvent.organizers.some(org => org.utorid === userUtorid);
-        
+
 
 
         if (!isManagerOrHigher && !isOrganizer) return res.status(403).json({ error: 'access denied' });
@@ -1959,7 +1964,7 @@ app.patch('/events/:eventId', authenticateUser, async (req, res) => {
 
         const now = new Date();
 
-        if (startTime != null && new Date(startTime) < now) 
+        if (startTime != null && new Date(startTime) < now)
             return res.status(400).json({ error: 'startTime cannot be in the past' });
         if (endTime != null && new Date(endTime) < now)
             return res.status(400).json({ error: 'endTime cannot be in the past' });
@@ -1973,7 +1978,7 @@ app.patch('/events/:eventId', authenticateUser, async (req, res) => {
 
         if (points != null) {
             if (!isManagerOrHigher) return res.status(403).json({ error: 'only managers can update points' });
-            if (!Number.isInteger(points) || points <= 0) 
+            if (!Number.isInteger(points) || points <= 0)
                 return res.status(400).json({ error: 'points must be a positive integer' });
             if (points < existingEvent.pointsAwarded)
                 return res.status(400).json({ error: 'points reduction would result in negative remaining points' });
@@ -1984,7 +1989,7 @@ app.patch('/events/:eventId', authenticateUser, async (req, res) => {
             if (published !== true) return res.status(400).json({ error: 'published can only be set to true' });
         }
 
-        if (existingEvent.startTime < now && 
+        if (existingEvent.startTime < now &&
             (name != null || description != null || location != null || startTime != null || capacity != null)) {
             return res.status(400).json({ error: 'updates to name, description, location, startTime, or capacity are not allowed after the event has started' });
         }
@@ -2025,11 +2030,11 @@ app.patch('/events/:eventId', authenticateUser, async (req, res) => {
     }
 });
 
-app.delete('/events/:eventId/guests/me', authenticateUser, isRegularOrHigher, async(req, res) => {
+app.delete('/events/:eventId/guests/me', authenticateUser, isRegularOrHigher, async (req, res) => {
     const { eventId } = req.params;
     const userUtorid = req.user.utorid; // Assuming the user's UTORid is stored in the token
     const eventIdInt = parseInt(eventId, 10);
-        
+
     if (isNaN(eventIdInt)) {
         return res.status(400).json({ error: 'Invalid event ID format' });
     }
@@ -2054,7 +2059,7 @@ app.delete('/events/:eventId/guests/me', authenticateUser, isRegularOrHigher, as
             where: {
                 eventId: parseInt(eventId),
                 utorid: userUtorid,
-                
+
             },
         });
 
@@ -2079,7 +2084,7 @@ app.delete('/events/:eventId/guests/me', authenticateUser, isRegularOrHigher, as
 app.delete('/events/:eventId/guests/:userId', authenticateUser, isManagerOrHigher, async (req, res) => {
     const { eventId, userId } = req.params;
     const eventIdInt = parseInt(eventId, 10);
-        
+
     if (isNaN(eventIdInt)) {
         return res.status(400).json({ error: 'Invalid event ID format' });
     }
@@ -2124,7 +2129,7 @@ app.delete('/events/:eventId/guests/:userId', authenticateUser, isManagerOrHighe
 app.delete('/events/:eventId/organizers/:userId', authenticateUser, isManagerOrHigher, async (req, res) => {
     const { eventId, userId } = req.params;
     const eventIdInt = parseInt(eventId, 10);
-        
+
     if (isNaN(eventIdInt)) {
         return res.status(400).json({ error: 'Invalid event ID format' });
     }
@@ -2176,7 +2181,7 @@ app.delete('/events/:eventId/organizers/:userId', authenticateUser, isManagerOrH
 app.delete('/events/:eventId', authenticateUser, isManagerOrHigher, async (req, res) => {
     const { eventId } = req.params;
     const eventIdInt = parseInt(eventId, 10);
-        
+
     if (isNaN(eventIdInt)) {
         return res.status(400).json({ error: 'Invalid event ID format' });
     }
@@ -2214,7 +2219,7 @@ app.post('/events/:eventId/organizers', authenticateUser, isManagerOrHigher, asy
     const { eventId } = req.params;
     const { utorid } = req.body;
     const eventIdInt = parseInt(eventId, 10);
-        
+
     if (isNaN(eventIdInt)) {
         return res.status(400).json({ error: 'Invalid event ID format' });
     }
@@ -2304,7 +2309,7 @@ app.post('/events/:eventId/organizers', authenticateUser, isManagerOrHigher, asy
     }
 });
 
-app.post('/events/:eventId/guests/me', authenticateUser, isRegularOrHigher, async(req, res)=> {
+app.post('/events/:eventId/guests/me', authenticateUser, isRegularOrHigher, async (req, res) => {
     const { eventId } = req.params;
     const userUtorid = req.user.utorid; // Assuming the user's UTORid is stored in the token
     const userName = req.user.name; // Assuming the user's name is stored in the token
@@ -2602,7 +2607,7 @@ app.post('/events/:eventId/transactions', authenticateUser, async (req, res) => 
 
             const user = await prisma.user.findUnique({
                 where: { utorid }
-              });
+            });
 
             // Format the response
             transactions = {
@@ -2783,7 +2788,7 @@ app.get('/promotions', authenticateUser, async (req, res) => {
     const userRole = req.user.role; // Assuming the user's role is stored in the token
     const userUtorid = req.user.utorid; // Assuming the user's UTORid is stored in the token
     if (page < 1 || limit < 1) {
-        return res.status(400).json({err: "WHATRE YOU DOING?"})
+        return res.status(400).json({ err: "WHATRE YOU DOING?" })
     }
     try {
         const now = new Date();
@@ -2872,318 +2877,318 @@ app.get('/promotions', authenticateUser, async (req, res) => {
 // GET /promotions - Get a list of promotions (Manager or higher)
 app.get('/promotions', authenticateUser, isManagerOrHigher, async (req, res) => {
     try {
-      const { started, ended } = req.query;
-      
-      // Validate that both started and ended are not specified together
-      if (started !== null && ended !== null) {
-        return res.status(400).json({ 
-          error: 'specifying both started and ended parameters is not allowed' 
+        const { started, ended } = req.query;
+
+        // Validate that both started and ended are not specified together
+        if (started !== null && ended !== null) {
+            return res.status(400).json({
+                error: 'specifying both started and ended parameters is not allowed'
+            });
+        }
+
+        // Build filter conditions based on query parameters
+        const filterConditions = {};
+
+        const now = new Date();
+
+        if (started !== null) {
+            const isStarted = started === 'true';
+            if (isStarted) {
+                // Promotions that have started (startTime <= now)
+                filterConditions.startTime = {
+                    lte: now
+                };
+            } else {
+                // Promotions that have not started (startTime > now)
+                filterConditions.startTime = {
+                    gt: now
+                };
+            }
+        }
+
+        if (ended !== null) {
+            const isEnded = ended === 'true';
+            if (isEnded) {
+                // Promotions that have ended (endTime <= now)
+                filterConditions.endTime = {
+                    lte: now
+                };
+            } else {
+                // Promotions that have not ended (endTime > now)
+                filterConditions.endTime = {
+                    gt: now
+                };
+            }
+        }
+
+        // Query promotions with the filter conditions
+        const promotions = await prisma.promotion.findMany({
+            where: filterConditions,
+            select: {
+                id: true,
+                name: true,
+                type: true,
+                startTime: true,
+                endTime: true,
+                minSpending: true,
+                rate: true,
+                points: true
+            }
         });
-      }
-      
-      // Build filter conditions based on query parameters
-      const filterConditions = {};
-      
-      const now = new Date();
-      
-      if (started !== null) {
-        const isStarted = started === 'true';
-        if (isStarted) {
-          // Promotions that have started (startTime <= now)
-          filterConditions.startTime = {
-            lte: now
-          };
-        } else {
-          // Promotions that have not started (startTime > now)
-          filterConditions.startTime = {
-            gt: now
-          };
-        }
-      }
-      
-      if (ended !== null) {
-        const isEnded = ended === 'true';
-        if (isEnded) {
-          // Promotions that have ended (endTime <= now)
-          filterConditions.endTime = {
-            lte: now
-          };
-        } else {
-          // Promotions that have not ended (endTime > now)
-          filterConditions.endTime = {
-            gt: now
-          };
-        }
-      }
-      
-      // Query promotions with the filter conditions
-      const promotions = await prisma.promotion.findMany({
-        where: filterConditions,
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          startTime: true,
-          endTime: true,
-          minSpending: true,
-          rate: true,
-          points: true
-        }
-      });
-      
-      // Format the response
-      const response = {
-        count: promotions.length,
-        results: promotions
-      };
-      
-      return res.status(200).json(response);
-      
+
+        // Format the response
+        const response = {
+            count: promotions.length,
+            results: promotions
+        };
+
+        return res.status(200).json(response);
+
     } catch (error) {
-      console.error('Error retrieving promotions:', error);
-      return res.status(500).json({ error: 'failed to retrieve promotions' });
+        console.error('Error retrieving promotions:', error);
+        return res.status(500).json({ error: 'failed to retrieve promotions' });
     }
-  });
+});
 
 // GET /promotions/:promotionId - Get a single promotion (Regular or higher)
 app.get('/promotions/:promotionId', authenticateUser, async (req, res) => {
     try {
-      const { promotionId } = req.params;
-      
-      // Convert promotionId to number
-      const id = parseInt(promotionId);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'invalid promotion id' });
-      }
-      
-      // Find the promotion
-      const promotion = await prisma.promotion.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          type: true,
-          startTime: true,
-          endTime: true,
-          minSpending: true,
-          rate: true,
-          points: true
-        }
-      });
-      
-      // Check if promotion exists
-      if (!promotion) {
-        return res.status(404).json({ error: 'promotion not found' });
-      }
-      
-      const now = new Date();
-      const userRole = req.user.role.toUpperCase();
-      const isManagerOrHigher = ['MANAGER', 'SUPERUSER'].includes(userRole);
+        const { promotionId } = req.params;
 
-      // Manager or higher gets full details regardless of active status
-      if (isManagerOrHigher) {
-        return res.status(200).json({
-          id: promotion.id,
-          name: promotion.name,
-          description: promotion.description,
-          type: promotion.type,
-          startTime: promotion.startTime,
-          endTime: promotion.endTime,
-          minSpending: promotion.minSpending,
-          rate: promotion.rate,
-          points: promotion.points
+        // Convert promotionId to number
+        const id = parseInt(promotionId);
+        if (isNaN(id)) {
+            return res.status(400).json({ error: 'invalid promotion id' });
+        }
+
+        // Find the promotion
+        const promotion = await prisma.promotion.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                type: true,
+                startTime: true,
+                endTime: true,
+                minSpending: true,
+                rate: true,
+                points: true
+            }
         });
-      }
-      
-      // Regular users can only see active promotions (without startTime)
-      if (promotion.startTime > now || promotion.endTime < now) {
-        return res.status(404).json({ error: 'promotion is inactive' });
-      }
-      
-      return res.status(200).json({
-        id: promotion.id,
-        name: promotion.name,
-        description: promotion.description,
-        type: promotion.type,
-        endTime: promotion.endTime,
-        minSpending: promotion.minSpending,
-        rate: promotion.rate,
-        points: promotion.points
-      });
-      
+
+        // Check if promotion exists
+        if (!promotion) {
+            return res.status(404).json({ error: 'promotion not found' });
+        }
+
+        const now = new Date();
+        const userRole = req.user.role.toUpperCase();
+        const isManagerOrHigher = ['MANAGER', 'SUPERUSER'].includes(userRole);
+
+        // Manager or higher gets full details regardless of active status
+        if (isManagerOrHigher) {
+            return res.status(200).json({
+                id: promotion.id,
+                name: promotion.name,
+                description: promotion.description,
+                type: promotion.type,
+                startTime: promotion.startTime,
+                endTime: promotion.endTime,
+                minSpending: promotion.minSpending,
+                rate: promotion.rate,
+                points: promotion.points
+            });
+        }
+
+        // Regular users can only see active promotions (without startTime)
+        if (promotion.startTime > now || promotion.endTime < now) {
+            return res.status(404).json({ error: 'promotion is inactive' });
+        }
+
+        return res.status(200).json({
+            id: promotion.id,
+            name: promotion.name,
+            description: promotion.description,
+            type: promotion.type,
+            endTime: promotion.endTime,
+            minSpending: promotion.minSpending,
+            rate: promotion.rate,
+            points: promotion.points
+        });
+
     } catch (error) {
-      console.error('Error retrieving promotion:', error);
-      return res.status(500).json({ error: 'failed to retrieve promotion' });
+        console.error('Error retrieving promotion:', error);
+        return res.status(500).json({ error: 'failed to retrieve promotion' });
     }
-  });
+});
 
 // PATCH /promotions/:promotionId - Update an existing promotion (Manager or higher)
 app.patch('/promotions/:promotionId', authenticateUser, isManagerOrHigher, async (req, res) => {
     try {
-      const { promotionId } = req.params;
-      const id = parseInt(promotionId);
-      
-      if (isNaN(id)) {
-        console.log('invalid id' + promotionId);
-        return res.status(400).json({ error: 'invalid promotion id' });
-      }
-      
-      // Find the existing promotion
-      const existingPromotion = await prisma.promotion.findUnique({
-        where: { id }
-      });
-      
-      if (!existingPromotion) {
-        return res.status(404).json({ error: 'promotion not found' });
-      }
-      
-      // Extract fields from request body
-      const { name, description, type, startTime, endTime, minSpending, rate, points } = req.body;
-      
-      // Validate required fields
-      if (!name && !description && !type && !startTime && !endTime) {
-        return res.status(400).json({ error: 'name, description, type, startTime, and endTime are required' });
-      }
-      
-      // Validate promotion type
-      if (type !== 'automatic' && type !== 'one-time' && type != null) {
-        return res.status(400).json({ error: 'type must be either "automatic" or "one-time"' });
-      }
-      
-      // Parse dates
-      const parsedStartTime = new Date(startTime);
-      const parsedEndTime = new Date(endTime);
-      const now = new Date();
-      
-      // Validate date formats
-      if (isNaN(parsedStartTime.getTime()) || isNaN(parsedEndTime.getTime())) {
-        return res.status(400).json({ error: 'invalid date format. Use ISO 8601 format' });
-      }
-      
-      // Validate that start time is before end time
-      if (parsedStartTime >= parsedEndTime) {
-        return res.status(400).json({ error: 'endTime must be after startTime' });
-      }
-      
-      // Validate that start time and end time are not in the past
-      if (parsedStartTime < now || parsedEndTime < now) {
-        return res.status(400).json({ error: 'startTime and endTime cannot be in the past' });
-      }
-      
-      // Check if the original start time has passed
-      if (new Date(existingPromotion.startTime) < now) {
-        // If start time has passed, we can only update endTime
-        if (name !== existingPromotion.name || 
-            description !== existingPromotion.description || 
-            type !== existingPromotion.type || 
-            parsedStartTime.getTime() !== new Date(existingPromotion.startTime).getTime() ||
-            minSpending !== existingPromotion.minSpending ||
-            rate !== existingPromotion.rate ||
-            points !== existingPromotion.points) {
-          return res.status(400).json({ 
-            error: 'cannot update name, description, type, startTime, minSpending, rate, or points after promotion has started'
-          });
+        const { promotionId } = req.params;
+        const id = parseInt(promotionId);
+
+        if (isNaN(id)) {
+            console.log('invalid id' + promotionId);
+            return res.status(400).json({ error: 'invalid promotion id' });
         }
-      }
-      
-      // Check if the original end time has passed
-      if (new Date(existingPromotion.endTime) < now) {
-        return res.status(400).json({ error: 'cannot update promotion after it has ended' });
-      }
-      
-      // Validate numeric fields
-      if (minSpending !== null && (isNaN(minSpending) || minSpending <= 0)) {
-        return res.status(400).json({ error: 'minSpending must be a positive number' });
-      }
-      
-      if (rate !== null && (isNaN(rate) || rate <= 0)) {
-        return res.status(400).json({ error: 'rate must be a positive number' });
-      }
-      
-      if (points !== null && (isNaN(points) || points <= 0 || !Number.isInteger(points))) {
-        return res.status(400).json({ error: 'points must be a positive integer' });
-      }
-      
-      // Prepare update data
-      const updateData = {
-        name,
-        description,
-        type,
-        startTime: parsedStartTime,
-        endTime: parsedEndTime
-      };
-      
-      // Add optional fields if they're defined
-      if (minSpending !== null) updateData.minSpending = minSpending;
-      if (rate !== null) updateData.rate = rate;
-      if (points !== null) updateData.points = points;
-      
-      // Update the promotion
-      const updatedPromotion = await prisma.promotion.update({
-        where: { id },
-        data: updateData
-      });
-      
-      // Create response with only updated fields
-      const response = {
-        id: updatedPromotion.id,
-        name: updatedPromotion.name,
-        type: updatedPromotion.type
-      };
-      
-      // Add other fields if they were updated
-      if (endTime !== existingPromotion.endTime) response.endTime = updatedPromotion.endTime;
-      if (startTime !== existingPromotion.startTime) response.startTime = updatedPromotion.startTime;
-      if (description !== existingPromotion.description) response.description = updatedPromotion.description;
-      if (minSpending !== existingPromotion.minSpending && minSpending !== null) response.minSpending = updatedPromotion.minSpending;
-      if (rate !== existingPromotion.rate && rate !== null) response.rate = updatedPromotion.rate;
-      if (points !== existingPromotion.points && points !== null) response.points = updatedPromotion.points;
-      
-      return res.status(200).json(response);
-      
+
+        // Find the existing promotion
+        const existingPromotion = await prisma.promotion.findUnique({
+            where: { id }
+        });
+
+        if (!existingPromotion) {
+            return res.status(404).json({ error: 'promotion not found' });
+        }
+
+        // Extract fields from request body
+        const { name, description, type, startTime, endTime, minSpending, rate, points } = req.body;
+
+        // Validate required fields
+        if (!name && !description && !type && !startTime && !endTime) {
+            return res.status(400).json({ error: 'name, description, type, startTime, and endTime are required' });
+        }
+
+        // Validate promotion type
+        if (type !== 'automatic' && type !== 'one-time' && type != null) {
+            return res.status(400).json({ error: 'type must be either "automatic" or "one-time"' });
+        }
+
+        // Parse dates
+        const parsedStartTime = new Date(startTime);
+        const parsedEndTime = new Date(endTime);
+        const now = new Date();
+
+        // Validate date formats
+        if (isNaN(parsedStartTime.getTime()) || isNaN(parsedEndTime.getTime())) {
+            return res.status(400).json({ error: 'invalid date format. Use ISO 8601 format' });
+        }
+
+        // Validate that start time is before end time
+        if (parsedStartTime >= parsedEndTime) {
+            return res.status(400).json({ error: 'endTime must be after startTime' });
+        }
+
+        // Validate that start time and end time are not in the past
+        if (parsedStartTime < now || parsedEndTime < now) {
+            return res.status(400).json({ error: 'startTime and endTime cannot be in the past' });
+        }
+
+        // Check if the original start time has passed
+        if (new Date(existingPromotion.startTime) < now) {
+            // If start time has passed, we can only update endTime
+            if (name !== existingPromotion.name ||
+                description !== existingPromotion.description ||
+                type !== existingPromotion.type ||
+                parsedStartTime.getTime() !== new Date(existingPromotion.startTime).getTime() ||
+                minSpending !== existingPromotion.minSpending ||
+                rate !== existingPromotion.rate ||
+                points !== existingPromotion.points) {
+                return res.status(400).json({
+                    error: 'cannot update name, description, type, startTime, minSpending, rate, or points after promotion has started'
+                });
+            }
+        }
+
+        // Check if the original end time has passed
+        if (new Date(existingPromotion.endTime) < now) {
+            return res.status(400).json({ error: 'cannot update promotion after it has ended' });
+        }
+
+        // Validate numeric fields
+        if (minSpending !== null && (isNaN(minSpending) || minSpending <= 0)) {
+            return res.status(400).json({ error: 'minSpending must be a positive number' });
+        }
+
+        if (rate !== null && (isNaN(rate) || rate <= 0)) {
+            return res.status(400).json({ error: 'rate must be a positive number' });
+        }
+
+        if (points !== null && (isNaN(points) || points <= 0 || !Number.isInteger(points))) {
+            return res.status(400).json({ error: 'points must be a positive integer' });
+        }
+
+        // Prepare update data
+        const updateData = {
+            name,
+            description,
+            type,
+            startTime: parsedStartTime,
+            endTime: parsedEndTime
+        };
+
+        // Add optional fields if they're defined
+        if (minSpending !== null) updateData.minSpending = minSpending;
+        if (rate !== null) updateData.rate = rate;
+        if (points !== null) updateData.points = points;
+
+        // Update the promotion
+        const updatedPromotion = await prisma.promotion.update({
+            where: { id },
+            data: updateData
+        });
+
+        // Create response with only updated fields
+        const response = {
+            id: updatedPromotion.id,
+            name: updatedPromotion.name,
+            type: updatedPromotion.type
+        };
+
+        // Add other fields if they were updated
+        if (endTime !== existingPromotion.endTime) response.endTime = updatedPromotion.endTime;
+        if (startTime !== existingPromotion.startTime) response.startTime = updatedPromotion.startTime;
+        if (description !== existingPromotion.description) response.description = updatedPromotion.description;
+        if (minSpending !== existingPromotion.minSpending && minSpending !== null) response.minSpending = updatedPromotion.minSpending;
+        if (rate !== existingPromotion.rate && rate !== null) response.rate = updatedPromotion.rate;
+        if (points !== existingPromotion.points && points !== null) response.points = updatedPromotion.points;
+
+        return res.status(200).json(response);
+
     } catch (error) {
-      console.error('Error updating promotion:', error);
-      return res.status(500).json({ error: 'failed to update promotion' });
+        console.error('Error updating promotion:', error);
+        return res.status(500).json({ error: 'failed to update promotion' });
     }
-  });
-  
-  // DELETE /promotions/:promotionId - Delete a promotion (Manager or higher)
-  app.delete('/promotions/:promotionId', authenticateUser, isManagerOrHigher, async (req, res) => {
+});
+
+// DELETE /promotions/:promotionId - Delete a promotion (Manager or higher)
+app.delete('/promotions/:promotionId', authenticateUser, isManagerOrHigher, async (req, res) => {
     try {
-      const { promotionId } = req.params;
-      const id = parseInt(promotionId);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'invalid promotion id' });
-      }
-      
-      // Find the promotion
-      const promotion = await prisma.promotion.findUnique({
-        where: { id }
-      });
-      
-      if (!promotion) {
-        return res.status(404).json({ error: 'promotion not found' });
-      }
-      
-      // Check if the promotion has already started
-      if (new Date(promotion.startTime) <= new Date()) {
-        return res.status(403).json({ error: 'cannot delete promotion that has already started' });
-      }
-      
-      // Delete the promotion
-      await prisma.promotion.delete({
-        where: { id }
-      });
-      
-      return res.status(204).send();
-      
+        const { promotionId } = req.params;
+        const id = parseInt(promotionId);
+
+        if (isNaN(id)) {
+            return res.status(400).json({ error: 'invalid promotion id' });
+        }
+
+        // Find the promotion
+        const promotion = await prisma.promotion.findUnique({
+            where: { id }
+        });
+
+        if (!promotion) {
+            return res.status(404).json({ error: 'promotion not found' });
+        }
+
+        // Check if the promotion has already started
+        if (new Date(promotion.startTime) <= new Date()) {
+            return res.status(403).json({ error: 'cannot delete promotion that has already started' });
+        }
+
+        // Delete the promotion
+        await prisma.promotion.delete({
+            where: { id }
+        });
+
+        return res.status(204).send();
+
     } catch (error) {
-      console.error('Error deleting promotion:', error);
-      return res.status(500).json({ error: 'failed to delete promotion' });
+        console.error('Error deleting promotion:', error);
+        return res.status(500).json({ error: 'failed to delete promotion' });
     }
-  });
+});
 
 const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);

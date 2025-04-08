@@ -34,18 +34,8 @@ const NavBar = ({ userRole, children }) => {
                 <h2 className="navbar-title">Pages</h2>
                 <ul className="navbar-menu">
                     <li><button onClick={() => navigate('/home')} className={isActive('/home')}>Home</button></li>
-                    
-                    <li>
-                        <button onClick={toggleSubMenu}>Promotions   {showSubMenu ? '\u25B2' : '\u25BC'}</button>
-                        {showSubMenu && (
-                            <ul className="sub-menu">
-                                <li><button onClick={() => navigate('/promotions/promotionlist')} className={isActive('/promotions/promotionlist')}>View All</button></li>
-                                <li><button onClick={() => navigate('/promotions/managepromotion')} className={isActive('/promotions/managepromotion')}>Manage</button></li>
-                            </ul>
-                            
-        
-                        )}
-                    </li>
+                    <li><button onClick={() => navigate('/promotions/promotionlist')} className={isActive('/promotions/promotionlist')}>Promotions</button></li>
+
                     <li>
                         <button onClick={toggleSubMenu}>Transactions   {showSubMenu ? '\u25B2' : '\u25BC'}</button>
                         {showSubMenu && (

@@ -998,12 +998,9 @@ app.get('/transactions', authenticateUser, isManagerOrHigher, async (req, res) =
         // Build the filter object
         const filters = {};
 
-        // Filter by name (utorid or name)
+        // Filter by name
         if (name) {
-            filters.OR = [
-                { utorid: { contains: name, mode: 'insensitive' } },
-                { user: { name: { contains: name, mode: 'insensitive' } } },
-            ];
+            filters.utorid = { contains: name.toLowerCase() };
         }
 
         // Filter by createdBy
@@ -1056,11 +1053,11 @@ app.get('/transactions', authenticateUser, isManagerOrHigher, async (req, res) =
                         id: true,
                     },
                 },
-                user: {
+                /* user: {
                     select: {
                         name: true
                     }
-                }
+                } */
             },
             orderBy: {
                 createdAt: 'desc'

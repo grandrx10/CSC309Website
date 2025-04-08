@@ -86,14 +86,17 @@ const NavBar = ({ children }) => {
                         <button onClick={toggleTransactionsMenu}>Transactions   {showTransactionsMenu ? '\u25B2' : '\u25BC'}</button>
                         {showTransactionsMenu && (
                             <ul className="sub-menu">
-                                <li><button onClick={() => navigate('/transactions')} className={isActive('/transactions')}>View All</button></li>
-                                <li><button onClick={() => navigate('/redeem')} className={isActive('/redeem')}>Redeem</button></li>
-                                <li><button onClick={() => navigate('/transfer')} className={isActive('/transfer')}>Transfer</button></li>
+                                <li><button onClick={() => navigate('/transactions/me')} className={isActive('/transactions/me')}>Your History</button></li>
+                                <li><button onClick={() => navigate('/transactions/redeem')} className={isActive('/transactions/redeem')}>Redeem</button></li>
+                                <li><button onClick={() => navigate('/transactions/transfer')} className={isActive('/transactions/transfer')}>Transfer</button></li>
                                 {isCashier && (
                                     <li><button onClick={() => navigate('/transactions/process')} className={isActive('/transactions/process')}>Process (Cashiers)</button></li>
                                 )}
                                 {isCashier && (
                                     <li><button onClick={() => navigate('/transactions/purchase')} className={isActive('/transactions/purchase')}>Create Purchase (Cashiers)</button></li>
+                                )}
+                                {isManager && (
+                                    <li><button onClick={() => navigate('/transactions/all')} className={isActive('/transactions/all')}>View All (Managers)</button></li>
                                 )}
                             </ul>
                         )}

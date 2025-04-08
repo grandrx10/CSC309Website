@@ -1644,7 +1644,6 @@ app.post('/events', authenticateUser, isManagerOrHigher, async (req, res) => {
     }
 });
 
-
 app.get('/events', authenticateUser, async (req, res) => {
     const {
         name,
@@ -1655,10 +1654,15 @@ app.get('/events', authenticateUser, async (req, res) => {
         published,
         page = 1,
         limit = 10,
+        sortBy = 'startTime', // Default sort field
+        sortOrder = 'asc',    // Default sort order
+        startDate,            // For date range filtering
+        endDate,               // For date range filtering
+        organizerId
     } = req.query; // Use req.query for GET requests
 
-    // console.log(req.query);
-    const role  = req.user.role.toUpperCase(); // Get the user's role from authentication
+    const role = req.user.role.toUpperCase(); // Get the user's role from authentication
+    
     // Validate query parameters
     if (started != null && ended != null) {
         return res.status(400).json({ error: 'cannot specify both started and ended' });
@@ -1707,26 +1711,50 @@ app.get('/events', authenticateUser, async (req, res) => {
             }
         }
 
+        // Date range filtering
+        if (startDate && endDate) {
+            filter.startTime = {
+                ...filter.startTime,
+                gte: new Date(startDate)
+            };
+            filter.endTime = {
+                ...filter.endTime,
+                lte: new Date(endDate)
+            };
+        }
+        
+        if (organizerId) {
+            filter.organizers = {
+                some: {
+                    utorid: organizerId
+                }
+            };
+        }
+
         // Filter by published status (only for MANAGER or higher)
         if (role !== 'REGULAR' && published !== null && published != undefined) {
             filter.published = published === 'true';
         }
 
-        // Filter by capacity (showFull)
-        // if (showFull === 'false') {
-        //     filter.guests = {
-        //         _count: {
-        //             lt: prisma.event.capacity
-        //         }
-        //     };
-        // }
-
         // Count total events matching the filters
         const count = await prisma.event.count({ where: filter });
-        // Fetch paginated events
+
+        // Prepare the orderBy object for sorting
+        const validSortFields = ['name', 'location', 'startTime', 'endTime', 'capacity'];
+        const orderBy = {};
+        
+        // Check if sortBy is valid and use it, otherwise default to startTime
+        if (validSortFields.includes(sortBy)) {
+            orderBy[sortBy] = sortOrder.toLowerCase() === 'desc' ? 'desc' : 'asc';
+        } else {
+            orderBy.startTime = 'asc';
+        }
+
+        // Fetch paginated events with sorting
         let events = await prisma.event.findMany({
             where: filter,
-            skip: (page - 1) * limit,
+            orderBy,
+            skip: (parseInt(page) - 1) * parseInt(limit),
             take: parseInt(limit),
             include: {
                 guests: true, // Include guests to calculate numGuests
@@ -1754,7 +1782,7 @@ app.get('/events', authenticateUser, async (req, res) => {
                 endTime: event.endTime.toISOString(),
                 capacity: event.capacity,
                 numGuests: event.guests.length,
-                organizers: event.organizers,  // Add this line
+                organizers: event.organizers,
             };
 
             // Add additional fields for MANAGER or higher
@@ -1766,6 +1794,7 @@ app.get('/events', authenticateUser, async (req, res) => {
 
             return baseResponse;
         });
+        console.log(count)
         // Return the response
         res.status(200).json({
             count,

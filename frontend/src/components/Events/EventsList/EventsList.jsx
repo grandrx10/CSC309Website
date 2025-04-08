@@ -1,24 +1,115 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Pagination, Space, message } from 'antd';
-import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { Button, Pagination, Space, message, Dropdown } from 'antd';
+import { PlusOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons';
 import EventsTable from './EventsTable';
 import EventsFilters from './EventsFilters';
 import styles from './EventsList.module.css';
+import NavBar from '../../NavBar';
+
+// Define role hierarchy
+const ROLE_HIERARCHY = {
+  'superuser': ['superuser', 'manager', 'cashier', 'regular'],
+  'manager': ['manager', 'cashier', 'regular'],
+  'cashier': ['cashier', 'regular'],
+  'regular': ['regular']
+};
 
 const EventsList = () => {
   const [state, setState] = useState({
     events: [],
-    allEvents: [], // Store all fetched events before filtering
     loading: false,
-    pagination: { current: 1, pageSize: 10, total: 0 },
-    filters: { search: '', status: 'all', dateRange: null }
+    pagination: { 
+      current: 1, 
+      pageSize: 10, 
+      total: 0
+    },
+    filters: { 
+      search: '', 
+      status: 'all', 
+      dateRange: null,
+      sortBy: 'startTime',
+      sortOrder: 'asc',
+      organizerOnly: false
+    },
+    pendingSearch: ''
+  });
+
+  const [user, setUser] = useState(null);
+  const [userLoading, setUserLoading] = useState(true);
+  const [currentViewRole, setCurrentViewRole] = useState(null);
+  const [showSettings, setShowSettings] = useState({
+    showCreateButton: false,
+    showStatusFilter: false,
+    showOrganizerFilter: false,
+    showActionsColumn: false
   });
 
   const navigate = useNavigate();
 
-  // Separate fetching from API and filtering logic
+  // Fetch current user data
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      setUserLoading(true);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('http://localhost:3100/users/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          navigate('/login');
+          throw new Error('Session expired. Please login again.');
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+      }
+
+      const userData = await response.json();
+      setUser(userData);
+      setCurrentViewRole(userData.role.toLowerCase()); // Initialize with user's actual role
+      setUserLoading(false);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      message.error(error.message || 'Failed to load user data');
+      setUserLoading(false);
+    }
+  }, [navigate]);
+
+  // Update show settings based on current view role
+  useEffect(() => {
+    if (!currentViewRole || !user) return;
+    
+    // Only managers and superusers get special privileges
+    const isPrivileged = ['manager', 'superuser'].includes(currentViewRole);
+    console.log(isPrivileged)
+    setShowSettings({
+      // Only managers and superusers can create events
+      showCreateButton: isPrivileged,
+      
+      // Only managers and superusers can see status filter
+      showStatusFilter: isPrivileged,
+      
+      // Everyone can see organizer filter
+      showOrganizerFilter: true,
+      
+      // Only managers and superusers can see action buttons (edit)
+      showActionsColumn: isPrivileged
+    });
+  }, [currentViewRole, user]);
+
+  // Fetch events from the API
   const fetchEvents = useCallback(async () => {
+    if (userLoading) return;
+    
     setState(prev => ({ ...prev, loading: true }));
     try {
       const token = localStorage.getItem('authToken');
@@ -29,16 +120,35 @@ const EventsList = () => {
       const params = new URLSearchParams({
         page: state.pagination.current,
         limit: state.pagination.pageSize,
-        name: state.filters.search,
-        published: state.filters.status === 'published' ? 'true' : 
-                state.filters.status === 'draft' ? 'false' : 
-                undefined,
-        // Don't send dateRange to backend since we'll filter locally
+        sortBy: state.filters.sortBy,
+        sortOrder: state.filters.sortOrder
       });
+
+      // Add name search if provided
+      if (state.filters.search) {
+        params.set('name', state.filters.search);
+      }
+
+      // Add published status if not 'all' and user has privileges
+      if (['manager', 'superuser'].includes(currentViewRole) && 
+          (state.filters.status === 'published' || state.filters.status === 'draft')) {
+        params.set('published', state.filters.status === 'published' ? 'true' : 'false');
+      }
+
+      // Add date range if provided
+      if (state.filters.dateRange && state.filters.dateRange.length === 2) {
+        params.set('startDate', state.filters.dateRange[0]);
+        params.set('endDate', state.filters.dateRange[1]);
+      }
+
+      // Add organizer filter if enabled
+      if (state.filters.organizerOnly && user) {
+        params.set('organizerId', user.utorid);
+      }
 
       // Clean up undefined parameters
       Array.from(params.keys()).forEach(key => {
-        if (params.get(key) === 'undefined' || params.get(key) === 'null') {
+        if (params.get(key) === 'undefined' || params.get(key) === 'null' || params.get(key) === '') {
           params.delete(key);
         }
       });
@@ -60,23 +170,23 @@ const EventsList = () => {
         throw new Error(errorData.error || `Request failed with status ${response.status}`);
       }
 
-      const { count, results } = await response.json();
+      const data = await response.json();
       
-      // Store all events from API
+      const { count, results } = data;
+      
       setState(prev => ({
         ...prev,
-        allEvents: results,
-        loading: false
+        events: results || [],
+        loading: false,
+        pagination: {
+          ...prev.pagination,
+          total: count
+        }
       }));
-      
-      // Then apply filters (this will trigger the applyFilters effect)
       
     } catch (error) {
       console.error('Error fetching events:', error);
-      setState(prev => ({
-        ...prev,
-        loading: false
-      }));
+      setState(prev => ({ ...prev, loading: false }));
       
       message.error({
         content: error.message || 'Failed to load events',
@@ -92,70 +202,101 @@ const EventsList = () => {
     state.pagination.pageSize, 
     state.filters.search,
     state.filters.status,
-    navigate
+    state.filters.dateRange,
+    state.filters.sortBy,
+    state.filters.sortOrder,
+    state.filters.organizerOnly,
+    navigate,
+    user,
+    userLoading,
+    currentViewRole
   ]);
 
-  // Apply filters to the fetched events
-  const applyFilters = useCallback(() => {
-    const { allEvents, filters } = state;
+  // Handle role change
+  const handleRoleChange = (role) => {
+    setCurrentViewRole(role);
+  };
+
+  // Render role dropdown
+  const renderRoleDropdown = () => {
+    if (!user) return null;
     
-    if (!allEvents.length) return;
+    const userRole = user.role.toLowerCase();
+    const availableRoles = ROLE_HIERARCHY[userRole] || ['regular'];
     
-    let filteredEvents = [...allEvents];
+    const items = availableRoles.map(role => ({
+      key: role,
+      label: role.charAt(0).toUpperCase() + role.slice(1)
+    }));
     
-    // Filter by date range if specified
-    if (filters.dateRange && filters.dateRange.length === 2 && 
-        filters.dateRange[0] && filters.dateRange[1]) {
-      const startDate = new Date(filters.dateRange[0]);
-      const endDate = new Date(filters.dateRange[1]);
-      
-      filteredEvents = filteredEvents.filter(event => {
-        const eventStart = new Date(event.startTime);
-        return eventStart >= startDate && eventStart <= endDate;
-      });
+    return (
+      <Dropdown 
+        menu={{ items, onClick: ({ key }) => handleRoleChange(key) }}
+        placement="bottomRight"
+      >
+        <Button icon={<UserOutlined />}>
+          Viewing as: {currentViewRole ? currentViewRole.charAt(0).toUpperCase() + currentViewRole.slice(1) : 'Unknown'}
+        </Button>
+      </Dropdown>
+    );
+  };
+
+  // Load user data and events on initial render
+  useEffect(() => {
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
+
+  // Fetch events when dependencies change
+  useEffect(() => {
+    if (!userLoading) {
+      fetchEvents();
     }
-    
-    // Sort by start time (ascending)
-    filteredEvents.sort((a, b) => {
-      return new Date(a.startTime) - new Date(b.startTime);
-    });
-    
+  }, [fetchEvents, userLoading, currentViewRole]);
+
+  // Handle search input changes without triggering API call
+  const handleSearchInputChange = (value) => {
     setState(prev => ({
       ...prev,
-      events: filteredEvents,
-      pagination: { 
-        ...prev.pagination, 
-        total: filteredEvents.length, // Update total for pagination
-        current: 1 // Reset to first page when filters change
-      }
+      pendingSearch: value
     }));
-  }, [state.allEvents, state.filters]);
+  };
 
-  // Fetch events on initial load and when fetch dependencies change
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-  
-  // Apply filters whenever allEvents or filters change
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters, state.allEvents, state.filters.dateRange]);
+  // Submit search only when the search button is clicked or Enter key is pressed
+  const handleSearchSubmit = (value) => {
+    setState(prev => ({
+      ...prev,
+      filters: { ...prev.filters, search: value },
+      pendingSearch: value,
+      pagination: { ...prev.pagination, current: 1 }
+    }));
+  };
 
   const handleFilterChange = (filterName, value) => {
     setState(prev => ({
       ...prev,
-      filters: { ...prev.filters, [filterName]: value }
+      filters: { ...prev.filters, [filterName]: value },
+      pagination: { ...prev.pagination, current: 1 }
     }));
   };
 
-  // Get paginated events slice for display
-  const paginatedEvents = useMemo(() => {
-    const { current, pageSize } = state.pagination;
-    const startIndex = (current - 1) * pageSize;
-    return state.events.slice(startIndex, startIndex + pageSize);
-  }, [state.events, state.pagination.current, state.pagination.pageSize]);
+  // Handle table sorting
+  const handleTableChange = (pagination, filters, sorter) => {
+    if (sorter && sorter.field) {
+      const newSortOrder = sorter.order === 'descend' ? 'desc' : 'asc';
+      setState(prev => ({
+        ...prev,
+        filters: {
+          ...prev.filters,
+          sortBy: sorter.field,
+          sortOrder: newSortOrder
+        },
+        pagination: { ...prev.pagination, current: 1 }
+      }));
+    }
+  };
 
   return (
+    <NavBar>
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>Manage Events</h2>
@@ -163,44 +304,73 @@ const EventsList = () => {
           <Button 
             icon={<SyncOutlined />} 
             onClick={fetchEvents}
-            loading={state.loading}
+            loading={state.loading || userLoading}
           >
             Refresh
           </Button>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/events/create')}
-          >
-            Create Event
-          </Button>
+          {showSettings.showCreateButton && (
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/events/create')}
+            >
+              Create Event
+            </Button>
+          )}
+          {renderRoleDropdown()}
         </Space>
       </div>
 
       <EventsFilters 
-        filters={state.filters} 
-        onFilterChange={handleFilterChange} 
+        filters={state.filters}
+        pendingSearch={state.pendingSearch}
+        onSearchChange={handleSearchInputChange}
+        onSearchSubmit={handleSearchSubmit}
+        onFilterChange={handleFilterChange}
+        showStatusFilter={showSettings.showStatusFilter}
+        showOrganizerFilter={showSettings.showOrganizerFilter && !!user}
+        isOrganizerFilterActive={state.filters.organizerOnly}
       />
 
       <EventsTable
-        events={paginatedEvents}
-        loading={state.loading}
+        events={state.events}
+        loading={state.loading || userLoading}
         onRowClick={(id) => navigate(`/events/${id}`)}
-        onEdit={(id) => navigate(`/events/${id}/edit`)}
-        onManageUsers={(id) => navigate(`/events/${id}/users`)}
+        onEdit={showSettings.showActionsColumn ? (id) => navigate(`/events/${id}/edit`) : null}
+        onChange={handleTableChange}
+        isPrivileged={showSettings.showStatusFilter}
       />
 
-      <Pagination
-        current={state.pagination.current}
-        pageSize={state.pagination.pageSize}
-        total={state.pagination.total}
-        onChange={(page) => setState(prev => ({
-          ...prev,
-          pagination: { ...prev.pagination, current: page }
-        }))}
-        className={styles.pagination}
-      />
+      <div className={styles.paginationContainer}>
+        <Pagination
+          current={state.pagination.current}
+          pageSize={state.pagination.pageSize}
+          total={state.pagination.total}
+          onChange={(page, pageSize) => {
+            setState(prev => ({
+              ...prev,
+              pagination: { 
+                ...prev.pagination, 
+                current: page,
+                pageSize: pageSize || prev.pagination.pageSize 
+              }
+            }));
+          }}
+          showSizeChanger
+          pageSizeOptions={['5', '10', '20', '50']}
+          showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} items`}
+          className={styles.pagination}
+        />
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
+            Total items: {state.pagination.total}, 
+            Page: {state.pagination.current}, 
+            Size: {state.pagination.pageSize}
+          </div>
+        )}
+      </div>
     </div>
+    </NavBar>
   );
 };
 

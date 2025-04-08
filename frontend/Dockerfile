@@ -1,46 +1,22 @@
-FROM node:18-alpine as build
-
+FROM node:18-alpine AS build
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install --legacy-peer-deps
+COPY . .
+RUN CI=false npm run build
 
-# Copy the rest of the app
-COPY . ./
-
-# Create a directory for static files if it doesn't exist
-RUN mkdir -p static
-
-# Run build with CI=false to prevent treating warnings as errors
-RUN CI=false npm run build || echo "Build failed, but continuing"
-
-# Production stage
 FROM nginx:alpine
+# Copy the build output to replace the default nginx contents
+COPY --from=build /app/build /usr/share/nginx/html
 
-# First copy the static fallback page
-COPY static/index.html /usr/share/nginx/html/fallback.html
+# Create a simple nginx config that handles the PORT environment variable
+RUN echo 'server {\n\
+    listen ${PORT:-80};\n\
+    location / {\n\
+        root /usr/share/nginx/html;\n\
+        index index.html;\n\
+        try_files $uri $uri/ /index.html =404;\n\
+    }\n\
+}' > /etc/nginx/templates/default.conf.template
 
-# Then try to copy the built files
-COPY --from=build /app/build /usr/share/nginx/html/ || echo "Using fallback page"
-
-# If build directory is empty, use the fallback page
-RUN if [ ! -f /usr/share/nginx/html/index.html ]; then \
-        cp /usr/share/nginx/html/fallback.html /usr/share/nginx/html/index.html; \
-    fi
-
-# Add custom nginx config that handles SPA routing
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html index.htm; \
-        try_files $uri $uri/ /index.html =404; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["sh", "-c", "envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

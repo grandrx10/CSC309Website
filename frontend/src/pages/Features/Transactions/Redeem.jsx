@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
 import NavBar from '../../../components/NavBar';
 import QRCode from 'react-qr-code';
+import { Input, Button, Typography, Space, Card, Alert, Result } from 'antd';
+import { CheckCircleTwoTone } from '@ant-design/icons';
+
+const { Paragraph } = Typography;
 
 const SuccessMessage = ({ redemptionId, amount, utorId, remark }) => (
-    <div className="transfer-success">
-        <h2>Redemption Request Sent!</h2>
-        <p>You've requested to redeem {amount} point(s).</p>
-        <p>Redemption ID: {redemptionId}</p>
-        <p>Provide the redemption ID or this QR code to a cashier to complete the redemption.</p>
-        <QRCode
-            value={`Redemption ID - ${redemptionId}\nAmount - ${amount}\nRequested by - ${utorId}`}
-        />
-    </div>
+    <Result
+        icon={<CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: '48px' }} />}
+        title="Redemption Request Sent!"
+        subTitle={`You’ve requested to redeem ${amount} point(s).`}
+        extra={
+            <div style={{ marginTop: 16 }}>
+                <Paragraph><b>Redemption ID:</b> {redemptionId}</Paragraph>
+                {remark && <Paragraph><b>Remark:</b> {remark}</Paragraph>}
+                <Paragraph>
+                    Provide the redemption ID or this QR code to a cashier to complete the redemption:
+                </Paragraph>
+                <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+                    <QRCode
+                        value={`Redemption ID - ${redemptionId}\nAmount - ${amount}\nRequested by - ${utorId}`}
+                    />
+                </div>
+            </div>
+        }
+    />
 );
 
 const Redeem = () => {
@@ -46,64 +60,74 @@ const Redeem = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setResult({ success: true, redemptionId: data.id, amount, utorId: data.utorid, remark });
+                setResult({
+                    success: true,
+                    redemptionId: data.id,
+                    amount,
+                    utorId: data.utorid,
+                    remark
+                });
                 setAmount('');
                 setRemark('');
-                console.log("Redemption successful: ", data);
             } else {
                 const data = await response.json();
                 setResult({ success: false, error: `Error ${response.status}: ${data.error}` });
-                console.error("Failed to complete redemption");
             }
         } catch (error) {
             setResult({ success: false, error: "Error during redemption: " + error.message });
-            console.error("Error during redemption:", error);
         }
     };
 
     return (
-        <div>
+        <div style={{ padding: '24px' }}>
             <NavBar>
-                <div className="redemption">
-                    <h1>Redeem</h1>
-                    <label htmlFor="amount">Enter Amount:</label>
-                    <div>
-                        <input
-                            className="input-field"
+                <Card title="Redeem Points" bordered style={{ maxWidth: 500, margin: 'auto' }}>
+                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                        <label htmlFor="amount"><b>Enter Amount:</b></label>
+                        <Input
                             type="number"
                             id="amount"
                             value={amount}
                             onChange={handleAmountChange}
                             placeholder="Enter Amount"
                         />
-                    </div>
-                    <label htmlFor="remark">Remark (Optional):</label>
-                    <div>
-                        <input
-                            className="input-field"
+
+                        <label htmlFor="remark"><b>Remark (Optional):</b></label>
+                        <Input
                             type="text"
                             id="remark"
                             value={remark}
                             onChange={handleRemarkChange}
                             placeholder="Enter Remark"
                         />
-                    </div>
-                    <button onClick={handleRedemption}>Submit Redemption Request</button>
-                    {result && result.success && (
-                        <SuccessMessage
-                            redemptionId = {result.redemptionId}
-                            amount = {result.amount}
-                            utorId = {result.utorId}
-                            remark = {result.remark}
-                        />
-                    )}
-                    {result && !result.success && (
-                        <div className="transfer-failed">
-                            <h2>Redemption Failed.</h2>
-                            <p>{result.error}</p>
-                        </div>
-                    )}
-                </div>
+
+                        <Button
+                            type="primary"
+                            onClick={handleRedemption}
+                            disabled={!amount}
+                        >
+                            Submit Redemption Request
+                        </Button>
+
+                        {result && result.success && (
+                            <SuccessMessage
+                                redemptionId={result.redemptionId}
+                                amount={result.amount}
+                                utorId={result.utorId}
+                                remark={result.remark}
+                            />
+                        )}
+
+                        {result && !result.success && (
+                            <Alert
+                                message="Redemption Failed"
+                                description={result.error}
+                                type="error"
+                                showIcon
+                            />
+                        )}
+                    </Space>
+                </Card>
             </NavBar>
         </div>
     );

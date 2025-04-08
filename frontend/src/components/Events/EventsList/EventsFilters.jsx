@@ -12,7 +12,10 @@ const EventsFilters = ({
   onFilterChange, 
   showStatusFilter = true,
   showOrganizerFilter = false,
-  isOrganizerFilterActive = false
+  isOrganizerFilterActive = false,
+  pendingSearch = '', // Add new prop for handling pending search
+  onSearchChange = () => {}, // Add handler for search input changes
+  onSearchSubmit = () => {} // Add handler for search submission
 }) => {
   const dateRangeValue = filters.dateRange?.length === 2 
     ? [
@@ -42,9 +45,9 @@ const EventsFilters = ({
             allowClear
             enterButton={<SearchOutlined />}
             size="large"
-            value={filters.search}
-            onChange={(e) => onFilterChange('search', e.target.value)}
-            onSearch={(value) => onFilterChange('search', value)}
+            value={pendingSearch} // Use pendingSearch instead of filters.search
+            onChange={(e) => onSearchChange(e.target.value)} // Update pending search
+            onSearch={onSearchSubmit} // Submit search on button click or Enter
             className={styles.search}
           />
 

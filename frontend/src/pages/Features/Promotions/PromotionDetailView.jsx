@@ -1,158 +1,147 @@
-// PromotionDetailView.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Button, Card, Descriptions, message, Modal } from 'antd';
+import { ArrowLeftOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import NavBar from '../../../components/NavBar';
 
 const PromotionDetailView = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [promotion, setPromotion] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [promotion, setPromotion] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
 
-    useEffect(() => {
-        const fetchPromotion = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const token = localStorage.getItem('authToken');
-                const response = await fetch(`http://localhost:3100/promotions/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+  useEffect(() => {
+    const fetchPromotion = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`http://localhost:3100/promotions/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch promotion details');
-                }
-
-                const data = await response.json();
-                setPromotion(data);
-            } catch (err) {
-                console.error('Error fetching promotion:', err);
-                setError(err.message);
-                navigate('/promotions');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchPromotion();
-    }, [id, navigate]);
-
-    const handleDelete = async () => {
-        try {
-            setLoading(true);
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`http://localhost:3100/promotions/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to delete promotion');
-            }
-
-            navigate('/promotions');
-        } catch (err) {
-            console.error('Error deleting promotion:', err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
+        if (!response.ok) {
+          throw new Error('Failed to fetch promotion details');
         }
+
+        const data = await response.json();
+        setPromotion(data);
+      } catch (err) {
+        console.error('Error fetching promotion:', err);
+        message.error(err.message);
+        navigate('/promotions');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
+    fetchPromotion();
+  }, [id, navigate]);
 
-    return (
-        <div style={{ paddingTop: '60px' }}>
-            <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2>Promotion Details</h2>
-                    <div>
-                        <button 
-                            onClick={() => navigate(`/promotions/${id}/edit`)}
-                            style={{ 
-                                padding: '8px 16px', 
-                                backgroundColor: '#1890ff', 
-                                color: 'white', 
-                                border: 'none', 
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                marginRight: '10px'
-                            }}
-                        >
-                            Edit
-                        </button>
-                        <button 
-                            onClick={handleDelete}
-                            style={{ 
-                                padding: '8px 16px', 
-                                backgroundColor: '#ff4d4f', 
-                                color: 'white', 
-                                border: 'none', 
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </div>
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:3100/promotions/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-                {promotion && (
-                    <div style={{ 
-                        backgroundColor: '#fff', 
-                        padding: '20px', 
-                        borderRadius: '4px', 
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                    }}>
-                        <div style={{ marginBottom: '15px' }}>
-                            <strong>Name:</strong> {promotion.name}
-                        </div>
-                        <div style={{ marginBottom: '15px' }}>
-                            <strong>Description:</strong> {promotion.description}
-                        </div>
-                        <div style={{ marginBottom: '15px' }}>
-                            <strong>Type:</strong> {promotion.type === 'automatic' ? 'Automatic' : 'One-Time'}
-                        </div>
-                        <div style={{ marginBottom: '15px' }}>
-                            <strong>Start Time:</strong> {new Date(promotion.startTime).toLocaleString()}
-                        </div>
-                        <div style={{ marginBottom: '15px' }}>
-                            <strong>End Time:</strong> {new Date(promotion.endTime).toLocaleString()}
-                        </div>
-                        <div style={{ marginBottom: '15px' }}>
-                            <strong>Min Spending:</strong> {promotion.minSpending ? `$${promotion.minSpending.toFixed(2)}` : 'N/A'}
-                        </div>
-                        <div style={{ marginBottom: '15px' }}>
-                            <strong>Rate:</strong> {promotion.rate ? `${(promotion.rate * 100).toFixed(0)}%` : 'N/A'}
-                        </div>
-                        <div style={{ marginBottom: '15px' }}>
-                            <strong>Points:</strong> {promotion.points || 'N/A'}
-                        </div>
-                    </div>
-                )}
+      if (!response.ok) {
+        throw new Error('Failed to delete promotion');
+      }
 
-                <button 
-                    onClick={() => navigate('/promotions')}
-                    style={{ 
-                        marginTop: '20px',
-                        padding: '8px 16px', 
-                        backgroundColor: '#f0f0f0', 
-                        border: '1px solid #d9d9d9', 
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Back to List
-                </button>
+      message.success('Promotion deleted successfully');
+      navigate('/promotions');
+    } catch (err) {
+      console.error('Error deleting promotion:', err);
+      message.error(err.message);
+    } finally {
+      setLoading(false);
+      setDeleteConfirmVisible(false);
+    }
+  };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '24px' }}>Loading...</div>;
+  if (!promotion) return <div>Promotion not found</div>;
+
+  
+  return (
+    <div>
+    <NavBar>
+    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/promotions')}
+          style={{ marginBottom: '16px' }}
+        >
+          Back to List
+        </Button>
+
+        <Card
+          title={promotion.name}
+          extra={
+            <div>
+              <Button 
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => navigate(`/promotions/${id}/edit`)}
+                style={{ marginRight: '8px' }}
+              >
+                Edit
+              </Button>
+              <Button 
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => setDeleteConfirmVisible(true)}
+              >
+                Delete
+              </Button>
             </div>
-        </div>
-    );
+          }
+        >
+          <Descriptions bordered column={1}>
+            <Descriptions.Item label="Description">{promotion.description}</Descriptions.Item>
+            <Descriptions.Item label="Type">
+              {promotion.type === 'automatic' ? 'Automatic' : 'One-Time'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Start Time">
+              {dayjs(promotion.startTime).format('YYYY-MM-DD HH:mm')}
+            </Descriptions.Item>
+            <Descriptions.Item label="End Time">
+              {dayjs(promotion.endTime).format('YYYY-MM-DD HH:mm')}
+            </Descriptions.Item>
+            <Descriptions.Item label="Min Spending">
+              {promotion.minSpending ? `$${promotion.minSpending.toFixed(2)}` : 'N/A'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Rate">
+              {promotion.rate ? `${(promotion.rate * 100).toFixed(0)}%` : 'N/A'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Points">
+              {promotion.points || 'N/A'}
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+
+        <Modal
+          title="Confirm Delete"
+          visible={deleteConfirmVisible}
+          onOk={handleDelete}
+          onCancel={() => setDeleteConfirmVisible(false)}
+          okText="Delete"
+          okButtonProps={{ danger: true }}
+        >
+          <p>Are you sure you want to delete this promotion? This action cannot be undone.</p>
+        </Modal>
+      </div>
+    </NavBar>
+  </div>
+  );
 };
 
 export default PromotionDetailView;

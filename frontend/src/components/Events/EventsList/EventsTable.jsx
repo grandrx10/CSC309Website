@@ -1,4 +1,6 @@
-import { Table } from 'antd';
+import React from 'react';
+import { Table, Button, Space, Tooltip } from 'antd';
+import { EditOutlined, TeamOutlined, EyeOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import styles from './EventsList.module.css';
 
@@ -6,49 +8,49 @@ const EventsTable = ({
   events, 
   loading, 
   onRowClick, 
-  onEdit, 
-  onManageUsers,
-  showPointsColumn = false,
-  showStatusColumn = false,
-  showActionsColumn = false,
-  columns: customColumns = null,
+  onEdit,
+  onChange,
+  isPrivileged
 }) => {
-  const baseColumns = [
+  const columns = [
     {
       title: 'Event Name',
       dataIndex: 'name',
       key: 'name',
+      sorter: true,
       render: (text, record) => (
-        <a onClick={() => onRowClick(record.id)}>{text}</a>
+        <a onClick={() => onRowClick && onRowClick(record.id)}>
+          {text}
+        </a>
       ),
     },
     {
       title: 'Location',
       dataIndex: 'location',
       key: 'location',
+      sorter: true,
     },
     {
       title: 'Start Time',
       dataIndex: 'startTime',
       key: 'startTime',
-      render: (text) => dayjs(text).format('MMM D, YYYY h:mm A'),
+      sorter: true,
+      render: (text) => text ? dayjs(text).format('MMM D, YYYY h:mm A') : '',
     },
     {
       title: 'End Time',
       dataIndex: 'endTime',
       key: 'endTime',
-      render: (text) => dayjs(text).format('MMM D, YYYY h:mm A'),
+      sorter: true,
+      render: (text) => text ? dayjs(text).format('MMM D, YYYY h:mm A') : '',
     },
-  ];
-
-  const optionalColumns = [
-    showPointsColumn && {
-      title: 'Points',
-      dataIndex: 'pointsRemain',
-      key: 'points',
-      render: (text, record) => `${record.pointsAwarded}/${text + record.pointsAwarded}`,
+    {
+      title: 'Capacity',
+      key: 'capacity',
+      sorter: true,
+      render: (_, record) => `${record.numGuests || 0}/${record.capacity || 0}`,
     },
-    showStatusColumn && {
+    isPrivileged && {
       title: 'Status',
       dataIndex: 'published',
       key: 'status',
@@ -58,18 +60,48 @@ const EventsTable = ({
         </span>
       ),
     },
-    
-  ].filter(Boolean); // Filter out false values
-
-  const columns = customColumns || [...baseColumns, ...optionalColumns];
+    isPrivileged && {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="small">
+          <Tooltip title="View Event">
+            <Button 
+              icon={<EyeOutlined />} 
+              size="small" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onRowClick && onRowClick(record.id);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="Edit Event">
+            <Button
+              icon={<EditOutlined />}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit && onEdit(record.id);
+              }}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    }
+  ].filter(Boolean); // Removes false/null/undefined from array
+  
 
   return (
     <Table
-      columns={columns}
       dataSource={events}
+      columns={columns}
       rowKey="id"
-      pagination={false} // Important: we handle pagination separately
       loading={loading}
+      pagination={false} // Disable table's built-in pagination, we handle it externally
+      onChange={onChange} // Handle sorting through this callback
+      onRow={(record) => ({
+        onClick: () => onRowClick && onRowClick(record.id),
+      })}
       className={styles.table}
     />
   );

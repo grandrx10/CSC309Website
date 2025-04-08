@@ -5,6 +5,7 @@ import Home from './pages/Home/Home';
 import Event from './components/Events/Event/Event';
 import EditEvent from './components/Events/Event/EditEvent';
 import EventsView from './components/Events/EventsList/EventsView';
+import EventsList from './components/Events/EventsList/EventsList';
 import CreateEvent from './pages/Events/CreateEvent';
 
 import PromotionList from './pages/Features/Promotions/PromotionList';
@@ -34,7 +35,7 @@ function App() {
       <Routes>
         <Route path="/" element={<SignIn />} />
         <Route path="/home" element={<Home />}/>
-        <Route path="/events" element={<EventsView />} />
+        <Route path="/events" element={<EventsList />} />
         <Route path="/events/create" element={<CreateEvent />} />
         <Route path="/events/:eventId/edit" element={<EditEvent />} />
         <Route path="/events/:eventId" element={<Event />} />

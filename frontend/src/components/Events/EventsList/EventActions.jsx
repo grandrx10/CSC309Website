@@ -1,15 +1,11 @@
 import { Button, Space } from 'antd';
 import { EditOutlined, UserOutlined } from '@ant-design/icons';
 
-const EventActions = ({ eventId, onEdit, onManageUsers }) => (
+const EventActions = ({ eventId, onEdit }) => (
   <Space size="middle">
     <Button 
       icon={<EditOutlined />} 
       onClick={() => onEdit(eventId)}
-    />
-    <Button 
-      icon={<UserOutlined />} 
-      onClick={() => onManageUsers(eventId)}
     />
   </Space>
 );

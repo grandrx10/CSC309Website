@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import PageHeader from '../Shared/PageHeader';
 import ActionButtons from '../Shared/ActionButtons';
 import EventGuests from './EventGuests';
+import EventOrganizers from './EventOrganizers';
 import { useNavigate } from 'react-router-dom';
 
 const EventDetails = ({ 
@@ -33,6 +34,8 @@ const EventDetails = ({
     return event.organizers?.some(org => org.utorid === currentUser?.utorid);
   };
 
+  const canManageOrganizers = ['manager', 'superuser'].includes(currentViewRole);
+
   return (
     <div style={{ padding: '24px' }}>
       <Card
@@ -62,7 +65,6 @@ const EventDetails = ({
           />
         </div>
 
-        {/* Rest of your EventDetails component remains the same */}
         <div style={{ padding: '0 24px 24px 24px' }}>
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Description">{event.description}</Descriptions.Item>
@@ -87,6 +89,13 @@ const EventDetails = ({
           </Descriptions>
         </div>
       </Card>
+
+      {canManageOrganizers && (
+        <EventOrganizers 
+          eventId={event.id} 
+          canManageOrganizers={canManageOrganizers}
+        />
+      )}
 
       {showGuestManagement && (
         <EventGuests 

@@ -14,7 +14,7 @@ const ROLE_HIERARCHY = {
   'cashier': ['cashier', 'regular'],
   'regular': ['regular']
 };
-
+const API_URL =  process.env.REACT_APP_API_URL || "http://localhost:3100";
 const isUserOrganizer = (event, userUtorid) => {
     if (!event.organizers || !userUtorid) return false;
     return event.organizers.some(organizer =>
@@ -60,7 +60,7 @@ const EventsView = ({
             const token = localStorage.getItem('authToken');
             if (!token) throw new Error('No authentication token found');
 
-            const response = await fetch('http://localhost:3100/users/me', {
+            const response = await fetch(API_URL + '/users/me', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -123,7 +123,7 @@ const EventsView = ({
                 params.set('published', state.filters.status === 'published');
             }
 
-            const response = await fetch(`http://localhost:3100/events?${params.toString()}`, {
+            const response = await fetch(API_URL + `/events?${params.toString()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

@@ -17,7 +17,8 @@
     "react-qr-code": "^2.0.15",
     "react-router-dom": "^6.30.0",
     "react-scripts": "^5.0.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "serve": "^14.2.0" 
   },
   "scripts": {
   "start": "serve -s build -l $PORT",

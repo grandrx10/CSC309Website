@@ -280,6 +280,9 @@ app.get('/users', authenticateUser, isManagerOrHigher, async (req, res) => {
             birthday: user.birthday ? user.birthday.toISOString().split('T')[0] : null,
             createdAt: user.createdAt.toISOString(),
             lastLogin: user.lastLogin ? user.lastLogin.toISOString() : null,
+            role: user.role 
+                ? user.role.toLowerCase().replace(/^./, (char) => char.toUpperCase())
+                : user.role
         }));
         return res.status(200).json({
             count,

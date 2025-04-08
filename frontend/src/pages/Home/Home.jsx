@@ -34,7 +34,7 @@ const Home = () => {
 
     return (
         <div>
-            <NavBar userRole={userInfo?.role.toLowerCase()}>
+            <NavBar>
                 <div class="home">
                     {userInfo ? (
                         <div>

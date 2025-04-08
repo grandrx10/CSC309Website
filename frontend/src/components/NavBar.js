@@ -1,11 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../App.css';
 
-const NavBar = ({ userRole, children }) => {
+const NavBar = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const isActive = (path) => location.pathname === path ? 'active' : '';
+
+    const [userRole, setUserRole] = useState('');
+
+    useEffect(() => {
+        const getInfo = async () => {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch("http://localhost:3100/users/me", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Ensure userInfo exists and has a role before setting it.
+                    if (data && data.role) {
+                        setUserRole(data.role.toLowerCase());
+                    }
+                } else {
+                    console.error("Failed to fetch user info");
+                }
+            } catch (error) {
+                console.error("Error fetching user info:", error);
+            }
+        };
+
+        getInfo();
+    }, []);
 
     const isCashier = userRole === 'cashier' || userRole === 'manager' || userRole === 'superuser';
     const isManager = userRole === 'manager' || userRole === 'superuser';

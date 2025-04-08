@@ -4,22 +4,16 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
 RUN CI=false npm run build
+# Debug - list contents to verify build succeeded
+RUN ls -la build/
 
 FROM nginx:alpine
 # Copy the build output to replace the default nginx contents
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Create templates directory
-RUN mkdir -p /etc/nginx/templates
+# Direct modification of the default config to listen on PORT env variable
+RUN sed -i.bak 's/listen\(.*\)80;/listen $PORT;/' /etc/nginx/conf.d/default.conf && \
+    sed -i.bak 's/^user *nginx;/#user nginx;/' /etc/nginx/nginx.conf
 
-# Create a simple nginx config that handles the PORT environment variable
-RUN echo 'server {\n\
-    listen ${PORT:-80};\n\
-    location / {\n\
-        root /usr/share/nginx/html;\n\
-        index index.html;\n\
-        try_files $uri $uri/ /index.html =404;\n\
-    }\n\
-}' > /etc/nginx/templates/default.conf.template
-
-CMD ["sh", "-c", "envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Make sure we can replace PORT at runtime
+CMD ["sh", "-c", "sed -i \"s/\\$PORT/$PORT/g\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

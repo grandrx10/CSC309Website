@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Input, Select, Space, Card, message } from 'antd';
-import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, Space, Card, message, Dropdown, Menu } from 'antd';
+import { PlusOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import NavBar from '../../../components/NavBar';
 
 const { Search } = Input;
 const { Option } = Select;
+
+const ROLE_HIERARCHY = {
+  'superuser': ['superuser', 'manager', 'cashier', 'regular'],
+  'manager': ['manager', 'cashier', 'regular'],
+  'cashier': ['cashier', 'regular'],
+  'regular': ['regular']
+};
 
 const PromotionList = () => {
   const [promotions, setPromotions] = useState([]);
@@ -22,7 +29,46 @@ const PromotionList = () => {
     started: '',
     ended: ''
   });
+  const [userRole, setUserRole] = useState('');
+  const [currentViewRole, setCurrentViewRole] = useState('regular');
   const navigate = useNavigate();
+
+  const fetchUserRole = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch("http://localhost:3100/users/me", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.role) {
+          const role = data.role.toLowerCase();
+          setUserRole(role);
+          
+          // Initialize view role from localStorage or use user's actual role
+          const savedRole = localStorage.getItem('currentViewRole');
+          const availableRoles = ROLE_HIERARCHY[role] || ['regular'];
+          
+          if (savedRole && availableRoles.includes(savedRole)) {
+            setCurrentViewRole(savedRole);
+          } else {
+            setCurrentViewRole(role);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUserRole();
+  }, [fetchUserRole]);
 
   const fetchPromotions = useCallback(async () => {
     try {
@@ -74,16 +120,47 @@ const PromotionList = () => {
     setPagination(pagination);
   };
 
+  const handleRoleChange = (role) => {
+    setCurrentViewRole(role);
+    localStorage.setItem('currentViewRole', role);
+  };
+
+  const renderRoleDropdown = () => {
+    if (!userRole) return null;
+    
+    const availableRoles = ROLE_HIERARCHY[userRole] || ['regular'];
+    
+    const menu = (
+      <Menu onClick={({ key }) => handleRoleChange(key)}>
+        {availableRoles.map(role => (
+          <Menu.Item key={role}>
+            {role.charAt(0).toUpperCase() + role.slice(1)}
+          </Menu.Item>
+        ))}
+      </Menu>
+    );
+    
+    return (
+      <Dropdown overlay={menu} placement="bottomRight">
+        <Button icon={<UserOutlined />}>
+          Viewing as: {currentViewRole.charAt(0).toUpperCase() + currentViewRole.slice(1)}
+        </Button>
+      </Dropdown>
+    );
+  };
+
+  const isManagerView = ['manager', 'superuser'].includes(currentViewRole);
+
   const columns = [
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      render: (text, record) => (
+      render: isManagerView ? (text, record) => (
         <Button type="link" onClick={() => navigate(`/promotions/${record.id}`)}>
           {text}
         </Button>
-      ),
+      ) : (text) => text,
     },
     {
       title: 'Type',
@@ -124,91 +201,91 @@ const PromotionList = () => {
     },
   ];
 
-
-
-
   return (
     <div>
-    <NavBar>
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-            <Card>
+      <NavBar>
+        <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+          <Card>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h2>Promotions</h2>
-                <Space>
+              <h2>Promotions</h2>
+              <Space>
+                {renderRoleDropdown()}
                 <Button 
-                    icon={<SyncOutlined />} 
-                    onClick={fetchPromotions}
-                    loading={loading}
+                  icon={<SyncOutlined />} 
+                  onClick={fetchPromotions}
+                  loading={loading}
                 >
-                    Refresh
+                  Refresh
                 </Button>
-                <Button 
+                {isManagerView && (
+                  <Button 
                     type="primary" 
                     icon={<PlusOutlined />}
                     onClick={() => navigate('/promotions/new')}
-                >
+                  >
                     Create Promotion
-                </Button>
-                </Space>
+                  </Button>
+                )}
+              </Space>
             </div>
 
             <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
-                <Search
+              <Search
                 placeholder="Search by name"
                 allowClear
                 value={filters.name}
                 onChange={(e) => handleFilterChange('name', e.target.value)}
                 style={{ width: 200 }}
-                />
-                <Select
+              />
+              <Select
                 placeholder="Type"
                 value={filters.type || undefined}
                 onChange={(value) => handleFilterChange('type', value)}
                 style={{ width: 120 }}
                 allowClear
-                >
+              >
                 <Option value="automatic">Automatic</Option>
                 <Option value="one-time">One-Time</Option>
-                </Select>
-                <Select
+              </Select>
+              <Select
                 placeholder="Start Status"
                 value={filters.started || undefined}
                 onChange={(value) => handleFilterChange('started', value)}
                 style={{ width: 140 }}
                 allowClear
-                >
+              >
                 <Option value="true">Started</Option>
                 <Option value="false">Not Started</Option>
-                </Select>
-                <Select
+              </Select>
+              <Select
                 placeholder="End Status"
                 value={filters.ended || undefined}
                 onChange={(value) => handleFilterChange('ended', value)}
                 style={{ width: 140 }}
                 allowClear
-                >
+              >
                 <Option value="true">Ended</Option>
                 <Option value="false">Not Ended</Option>
-                </Select>
+              </Select>
             </div>
 
             <Table
-                columns={columns}
-                dataSource={promotions}
-                rowKey="id"
-                loading={loading}
-                pagination={{
+              columns={columns}
+              dataSource={promotions}
+              rowKey="id"
+              loading={loading}
+              pagination={{
                 ...pagination,
                 showSizeChanger: true,
                 pageSizeOptions: ['5', '10', '20', '50'],
                 showTotal: (total) => `Total ${total} items`
-                }}
-                onChange={handleTableChange}
+              }}
+              onChange={handleTableChange}
             />
-            </Card>
+          </Card>
         </div>
-    </NavBar>
-  </div>
+      </NavBar>
+    </div>
   );
 };
 

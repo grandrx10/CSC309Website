@@ -200,6 +200,40 @@ const Event = () => {
   }
   if (!event) return <div>Event not found</div>;
 
+  const handleJoinEvent = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:3100/events/${eventId}/guests/me`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+  
+      if (!response.ok) {
+        if (response.status === 400) throw new Error('You are already registered');
+        if (response.status === 404) throw new Error('Event not found');
+        if (response.status === 410) throw new Error('Event is full or ended');
+        throw new Error('Failed to join event');
+      }
+  
+      const data = await response.json();
+      setEvent(prev => ({
+        ...prev,
+        numGuests: data.numGuests
+      }));
+      message.success('Successfully joined the event!');
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+  
+
+
   return isEditMode ? (
     <NavBar>
       <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 24px 0 0' }}>
@@ -214,18 +248,18 @@ const Event = () => {
     </NavBar>
   ) : (
     <NavBar>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 24px 0 0' }}>
-        {renderRoleDropdown()}
-      </div>
       <EventDetails 
-        event={event}
-        onEdit={hasEditPrivileges() ? () => navigate(`/events/${eventId}/edit`) : null}
-        onDelete={hasEditPrivileges() ? deleteEvent : null}
-        showGuestManagement={canManageGuests()}
-        showStatus={hasEditPrivileges()}
-        currentUser={currentUser}
-        currentViewRole={currentViewRole}
-      /> 
+  event={event}
+  onEdit={hasEditPrivileges() ? () => navigate(`/events/${eventId}/edit`) : null}
+  onDelete={hasEditPrivileges() ? deleteEvent : null}
+  onEnroll={handleJoinEvent}
+  enrollDisabled={!event.published || event.numGuests >= event.capacity}
+  showGuestManagement={canManageGuests()}
+  showStatus={hasEditPrivileges()}
+  currentUser={currentUser}
+  currentViewRole={currentViewRole}
+  renderRoleDropdown={renderRoleDropdown} // Pass the dropdown render function
+/>
     </NavBar>
   );
 };

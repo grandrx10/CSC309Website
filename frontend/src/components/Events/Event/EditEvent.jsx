@@ -6,7 +6,7 @@ import NavBar from '../../NavBar';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
-
+const API_URL =  process.env.REACT_APP_API_URL || "http://localhost:3100"; 
 const EditEvent = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const EditEvent = () => {
       const token = localStorage.getItem('authToken');
       
       // Get current user info
-      const userResponse = await fetch('http://localhost:3100/users/me', {
+      const userResponse = await fetch(API_URL + '/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -37,7 +37,7 @@ const EditEvent = () => {
       setCurrentUser(userData);
       
       // Get event data
-      const eventResponse = await fetch(`http://localhost:3100/events/${eventId}`, {
+      const eventResponse = await fetch(API_URL + `/events/${eventId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -89,7 +89,7 @@ const EditEvent = () => {
         payload.published = event.published;
       }
 
-      const response = await fetch(`http://localhost:3100/events/${eventId}`, {
+      const response = await fetch(API_URL + `/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

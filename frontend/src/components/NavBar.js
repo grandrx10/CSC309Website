@@ -105,9 +105,6 @@ const NavBar = ({ children }) => {
                     {isManager && (
                         <li><button onClick={() => navigate('/users/update')} className={isActive('/users/update')}>Update User (Managers)</button></li>
                     )}
-                    {isSuperuser && (
-                        <li><button onClick={() => navigate('/users/promote')} className={isActive('/users/promote')}>Promote User (Superusers)</button></li>
-                    )}
                     <li><button onClick={() => navigate('/profile')} className={isActive('/profile')}>Profile</button></li>
                     <li><button onClick={() => navigate('/')} className={`log-out ${isActive('/')}`}>Log Out</button></li>
                 </ul>

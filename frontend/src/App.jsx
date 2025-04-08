@@ -43,7 +43,7 @@ function App() {
         <Route path="/events/:eventId" element={<Event />} />
 
 
-        <Route path="/promotions" element={<PromotionsListView />} />
+        <Route path="/promotions" element={<PromotionList />} />
         <Route path="/promotions/new" element={<PromotionForm isEdit={false} />} />
         <Route path="/promotions/:id" element={<PromotionDetailView />} />
         <Route path="/promotions/:id/edit" element={<PromotionForm isEdit={true} />} />

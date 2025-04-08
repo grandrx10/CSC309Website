@@ -9,6 +9,9 @@ FROM nginx:alpine
 # Copy the build output to replace the default nginx contents
 COPY --from=build /app/build /usr/share/nginx/html
 
+# Create templates directory
+RUN mkdir -p /etc/nginx/templates
+
 # Create a simple nginx config that handles the PORT environment variable
 RUN echo 'server {\n\
     listen ${PORT:-80};\n\

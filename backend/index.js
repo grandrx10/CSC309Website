@@ -1794,7 +1794,6 @@ app.get('/events', authenticateUser, async (req, res) => {
 
             return baseResponse;
         });
-        console.log(count)
         // Return the response
         res.status(200).json({
             count,

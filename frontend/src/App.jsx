@@ -23,9 +23,12 @@ import AllTransactions from './pages/Features/Transactions/AllTransactions';
 
 import Users from './pages/Features/Users/Users';
 import UpdateUser from './pages/Features/Users/UpdateUser';
+import AddUser from './pages/Features/Users/AddUser';
+
 import Profile from './components/Profile/Profile';
 import EditProfile from './components/Profile/EditProfile';
 import ChangePassword from './components/Profile/ChangePassword';
+
 
 import NotFound from './pages/NotFound';
 
@@ -55,6 +58,8 @@ function App() {
 
         <Route path="/users" element={<Users />} />
         <Route path="/users/update" element={<UpdateUser />} />
+        <Route path="/users/add" element={<AddUser />} />
+
         
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/edit" element={<EditProfile />} />

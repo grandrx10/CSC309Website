@@ -1,7 +1,9 @@
 {
     "deploy": {
-      "startCommand": null,
       "restartPolicyType": "ON_FAILURE",
-      "numReplicas": 1
+      "numReplicas": 1,
+      "healthcheckPath": "/",
+      "healthcheckTimeout": 300,
+      "healthcheckInterval": 10
     }
   }

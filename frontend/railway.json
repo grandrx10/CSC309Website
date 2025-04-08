@@ -1,9 +1,7 @@
 {
-    "build": {
-      "builder": "nixpacks"
-    },
     "deploy": {
-      "startCommand": "npm start",
-      "restartPolicyType": "ON_FAILURE"
+      "startCommand": null,
+      "restartPolicyType": "ON_FAILURE",
+      "numReplicas": 1
     }
   }

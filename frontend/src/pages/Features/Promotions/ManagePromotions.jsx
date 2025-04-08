@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Button, Table, Input, Select, DatePicker, Card, Descriptions, Form, InputNumber, Modal, message, Space } from 'antd';import { PlusOutlined, EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import NavBar from '../../../components/NavBar';
+
+const { Search } = Input;
+const { Option } = Select;
+const { TextArea } = Input;
 
 const ManagePromotions = () => {
   const navigate = useNavigate();
@@ -8,38 +14,43 @@ const ManagePromotions = () => {
   const [promotions, setPromotions] = useState([]);
   const [currentPromotion, setCurrentPromotion] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [total, setTotal] = useState(0);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
   const [filters, setFilters] = useState({
     name: '',
     type: '',
     started: '',
     ended: ''
   });
+  const [form] = Form.useForm();
+  const [editing, setEditing] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
 
   useEffect(() => {
-    if (promotionId) {
+    if (promotionId && promotionId !== 'new') {
       fetchPromotionDetails(promotionId);
     } else {
       fetchPromotions();
     }
-  }, [promotionId, page, limit, filters]);
+  }, [promotionId, pagination.current, pagination.pageSize, filters]);
 
   const fetchPromotions = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('authToken');
-      const queryParams = new URLSearchParams({
-        page,
-        limit,
+      const params = new URLSearchParams({
+        page: pagination.current,
+        limit: pagination.pageSize,
         ...(filters.name && { name: filters.name }),
         ...(filters.type && { type: filters.type }),
         ...(filters.started && { started: filters.started }),
         ...(filters.ended && { ended: filters.ended })
-      }).toString();
+      });
 
-      const response = await fetch(`http://localhost:3100/promotions?${queryParams}`, {
+      const response = await fetch(`http://localhost:3100/promotions?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -49,9 +60,10 @@ const ManagePromotions = () => {
       
       const data = await response.json();
       setPromotions(data.results);
-      setTotal(data.count);
+      setPagination(prev => ({ ...prev, total: data.count }));
     } catch (error) {
       console.error('Error fetching promotions:', error);
+      message.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -71,16 +83,28 @@ const ManagePromotions = () => {
       
       const data = await response.json();
       setCurrentPromotion(data);
+      form.setFieldsValue({
+        name: data.name,
+        description: data.description,
+        type: data.type,
+        startTime: dayjs(data.startTime),
+        endTime: dayjs(data.endTime),
+        minSpending: data.minSpending,
+        rate: data.rate,
+        points: data.points
+      });
     } catch (error) {
       console.error('Error fetching promotion details:', error);
+      message.error(error.message);
       navigate('/promotions');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreatePromotion = async (formData) => {
+  const handleCreatePromotion = async (values) => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('authToken');
       const response = await fetch('http://localhost:3100/promotions', {
         method: 'POST',
@@ -88,42 +112,61 @@ const ManagePromotions = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...values,
+          startTime: values.startTime.toISOString(),
+          endTime: values.endTime.toISOString()
+        })
       });
 
       if (!response.ok) throw new Error('Failed to create promotion');
       
       const data = await response.json();
+      message.success('Promotion created successfully');
       navigate(`/promotions/${data.id}`);
     } catch (error) {
       console.error('Error creating promotion:', error);
+      message.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleUpdatePromotion = async (id, formData) => {
+  const handleUpdatePromotion = async (values) => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/promotions/${id}`, {
+      const response = await fetch(`http://localhost:3100/promotions/${promotionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...values,
+          startTime: values.startTime.toISOString(),
+          endTime: values.endTime.toISOString()
+        })
       });
 
       if (!response.ok) throw new Error('Failed to update promotion');
       
-      fetchPromotionDetails(id); // Refresh the promotion details
+      message.success('Promotion updated successfully');
+      setEditing(false);
+      fetchPromotionDetails(promotionId);
     } catch (error) {
       console.error('Error updating promotion:', error);
+      message.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeletePromotion = async (id) => {
+  const handleDeletePromotion = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/promotions/${id}`, {
+      const response = await fetch(`http://localhost:3100/promotions/${promotionId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -132,362 +175,296 @@ const ManagePromotions = () => {
 
       if (!response.ok) throw new Error('Failed to delete promotion');
       
+      message.success('Promotion deleted successfully');
       navigate('/promotions');
     } catch (error) {
       console.error('Error deleting promotion:', error);
+      message.error(error.message);
+    } finally {
+      setLoading(false);
+      setDeleteConfirmVisible(false);
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-    setPage(1); // Reset to first page when filters change
+  const handleTableChange = (pagination) => {
+    setPagination(pagination);
   };
 
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({ ...prev, [name]: value }));
+    setPagination(prev => ({ ...prev, current: 1 }));
+  };
+
+  const promotionColumns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <Button type="link" onClick={() => navigate(`/promotions/${record.id}`)}>
+          {text}
+        </Button>
+      ),
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type) => type === 'automatic' ? 'Automatic' : 'One-Time'
+    },
+    {
+      title: 'Start Time',
+      dataIndex: 'startTime',
+      key: 'startTime',
+      render: (text) => dayjs(text).format('MMM D, YYYY h:mm A')
+    },
+    {
+      title: 'End Time',
+      dataIndex: 'endTime',
+      key: 'endTime',
+      render: (text) => dayjs(text).format('MMM D, YYYY h:mm A')
+    },
+    {
+      title: 'Min Spending',
+      dataIndex: 'minSpending',
+      key: 'minSpending',
+      render: (text) => text ? `$${text.toFixed(2)}` : '-'
+    },
+    {
+      title: 'Rate',
+      dataIndex: 'rate',
+      key: 'rate',
+      render: (text) => text ? `${(text * 100).toFixed(0)}%` : '-'
+    },
+    {
+      title: 'Points',
+      dataIndex: 'points',
+      key: 'points',
+      render: (text) => text || '-'
+    },
+  ];
+
   const renderPromotionsList = () => (
-    <div>
-      <h2>Promotions List</h2>
-      
-      {/* Filters */}
-      <div style={{ marginBottom: '20px' }}>
-        <input
-          name="name"
+    <div style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <h2>Promotions</h2>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />}
+          onClick={() => navigate('/promotions/new')}
+        >
+          Create Promotion
+        </Button>
+      </div>
+
+      <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
+        <Search
           placeholder="Search by name"
+          allowClear
           value={filters.name}
-          onChange={handleFilterChange}
+          onChange={(e) => handleFilterChange('name', e.target.value)}
+          style={{ width: 200 }}
         />
-        <select
-          name="type"
-          value={filters.type}
-          onChange={handleFilterChange}
-          style={{ marginLeft: '10px' }}
+        <Select
+          placeholder="Type"
+          value={filters.type || undefined}
+          onChange={(value) => handleFilterChange('type', value)}
+          style={{ width: 120 }}
+          allowClear
         >
-          <option value="">All Types</option>
-          <option value="automatic">Automatic</option>
-          <option value="one-time">One-Time</option>
-        </select>
-        <select
-          name="started"
-          value={filters.started}
-          onChange={handleFilterChange}
-          style={{ marginLeft: '10px' }}
+          <Option value="automatic">Automatic</Option>
+          <Option value="one-time">One-Time</Option>
+        </Select>
+        <Select
+          placeholder="Start Status"
+          value={filters.started || undefined}
+          onChange={(value) => handleFilterChange('started', value)}
+          style={{ width: 140 }}
+          allowClear
         >
-          <option value="">All Statuses</option>
-          <option value="true">Started</option>
-          <option value="false">Not Started</option>
-        </select>
-        <select
-          name="ended"
-          value={filters.ended}
-          onChange={handleFilterChange}
-          style={{ marginLeft: '10px' }}
+          <Option value="true">Started</Option>
+          <Option value="false">Not Started</Option>
+        </Select>
+        <Select
+          placeholder="End Status"
+          value={filters.ended || undefined}
+          onChange={(value) => handleFilterChange('ended', value)}
+          style={{ width: 140 }}
+          allowClear
         >
-          <option value="">All Statuses</option>
-          <option value="true">Ended</option>
-          <option value="false">Not Ended</option>
-        </select>
+          <Option value="true">Ended</Option>
+          <Option value="false">Not Ended</Option>
+        </Select>
+        <Button onClick={fetchPromotions}>Search</Button>
       </div>
 
-      {/* Promotions Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Name</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Type</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Start Time</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>End Time</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {promotions.map(promo => (
-            <tr key={promo.id}>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{promo.name}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{promo.type}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                {new Date(promo.startTime).toLocaleString()}
-              </td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                {new Date(promo.endTime).toLocaleString()}
-              </td>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                <button onClick={() => navigate(`/promotions/${promo.id}`)}>View</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Pagination */}
-      <div style={{ marginTop: '20px' }}>
-        <button 
-          disabled={page === 1} 
-          onClick={() => setPage(p => p - 1)}
-        >
-          Previous
-        </button>
-        <span style={{ margin: '0 10px' }}>Page {page}</span>
-        <button 
-          disabled={page * limit >= total} 
-          onClick={() => setPage(p => p + 1)}
-        >
-          Next
-        </button>
-        <select 
-          value={limit} 
-          onChange={(e) => setLimit(Number(e.target.value))}
-          style={{ marginLeft: '10px' }}
-        >
-          <option value={5}>5 per page</option>
-          <option value={10}>10 per page</option>
-          <option value={20}>20 per page</option>
-        </select>
-      </div>
-
-      {/* Create New Promotion Button */}
-      <button 
-        onClick={() => navigate('/promotions/new')}
-        style={{ marginTop: '20px' }}
-      >
-        Create New Promotion
-      </button>
+      <Table
+        columns={promotionColumns}
+        dataSource={promotions}
+        rowKey="id"
+        loading={loading}
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          pageSizeOptions: ['5', '10', '20', '50'],
+          showTotal: (total) => `Total ${total} items`
+        }}
+        onChange={handleTableChange}
+      />
     </div>
   );
 
   const renderPromotionDetails = () => (
-    <div>
-      <h2>Promotion Details</h2>
-      {currentPromotion && (
-        <div>
-          <div>
-            <strong>Name:</strong> {currentPromotion.name}
-          </div>
-          <div>
-            <strong>Description:</strong> {currentPromotion.description}
-          </div>
-          <div>
-            <strong>Type:</strong> {currentPromotion.type}
-          </div>
-          <div>
-            <strong>Start Time:</strong> {new Date(currentPromotion.startTime).toLocaleString()}
-          </div>
-          <div>
-            <strong>End Time:</strong> {new Date(currentPromotion.endTime).toLocaleString()}
-          </div>
-          <div>
-            <strong>Min Spending:</strong> {currentPromotion.minSpending || 'N/A'}
-          </div>
-          <div>
-            <strong>Rate:</strong> {currentPromotion.rate || 'N/A'}
-          </div>
-          <div>
-            <strong>Points:</strong> {currentPromotion.points || 'N/A'}
-          </div>
+    <div style={{ padding: '24px' }}>
+      <Button
+        icon={<ArrowLeftOutlined />}
+        onClick={() => navigate('/promotions')}
+        style={{ marginBottom: '16px' }}
+      >
+        Back
+      </Button>
 
-          <div style={{ marginTop: '20px' }}>
-            <button onClick={() => navigate('/promotions')}>Back to List</button>
-            <button 
-              onClick={() => navigate(`/promotions/${promotionId}/edit`)}
-              style={{ marginLeft: '10px' }}
+      <Card
+        title={currentPromotion.name}
+        extra={
+          <Space>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => setEditing(true)}
             >
               Edit
-            </button>
-            <button 
-              onClick={() => handleDeletePromotion(promotionId)}
-              style={{ marginLeft: '10px', color: 'red' }}
+            </Button>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => setDeleteConfirmVisible(true)}
             >
               Delete
-            </button>
-          </div>
-        </div>
-      )}
+            </Button>
+          </Space>
+        }
+      >
+        <Descriptions bordered column={1}>
+          <Descriptions.Item label="Description">{currentPromotion.description}</Descriptions.Item>
+          <Descriptions.Item label="Type">
+            {currentPromotion.type === 'automatic' ? 'Automatic' : 'One-Time'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Start Time">
+            {dayjs(currentPromotion.startTime).format('YYYY-MM-DD HH:mm')}
+          </Descriptions.Item>
+          <Descriptions.Item label="End Time">
+            {dayjs(currentPromotion.endTime).format('YYYY-MM-DD HH:mm')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Min Spending">
+            {currentPromotion.minSpending ? `$${currentPromotion.minSpending.toFixed(2)}` : 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Rate">
+            {currentPromotion.rate ? `${(currentPromotion.rate * 100).toFixed(0)}%` : 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Points">
+            {currentPromotion.points || 'N/A'}
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
     </div>
   );
 
-  const renderCreatePromotion = () => (
-    <div>
-      <h2>Create New Promotion</h2>
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        const formData = {
-          name: e.target.name.value,
-          description: e.target.description.value,
-          type: e.target.type.value,
-          startTime: e.target.startTime.value,
-          endTime: e.target.endTime.value,
-          minSpending: e.target.minSpending.value || null,
-          rate: e.target.rate.value || null,
-          points: e.target.points.value || null
-        };
-        handleCreatePromotion(formData);
-      }}>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Name:</label>
-          <input name="name" required />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Description:</label>
-          <textarea name="description" required />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Type:</label>
-          <select name="type" required>
-            <option value="automatic">Automatic</option>
-            <option value="one-time">One-Time</option>
-          </select>
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Start Time:</label>
-          <input 
-            name="startTime" 
-            type="datetime-local" 
-            required 
-            min={new Date().toISOString().slice(0, 16)}
-          />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>End Time:</label>
-          <input 
-            name="endTime" 
-            type="datetime-local" 
-            required 
-            min={new Date().toISOString().slice(0, 16)}
-          />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Min Spending (optional):</label>
-          <input name="minSpending" type="number" min="0" step="0.01" />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Rate (optional):</label>
-          <input name="rate" type="number" min="0" step="0.01" />
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Points (optional):</label>
-          <input name="points" type="number" min="0" />
-        </div>
-        <button type="submit">Create</button>
-        <button 
-          type="button" 
-          onClick={() => navigate('/promotions')}
-          style={{ marginLeft: '10px' }}
+  const renderPromotionForm = (isEdit) => (
+    <div style={{ padding: '24px' }}>
+      <Button
+        icon={<ArrowLeftOutlined />}
+        onClick={() => isEdit ? navigate(`/promotions/${promotionId}`) : navigate('/promotions')}
+        style={{ marginBottom: '16px' }}
+      >
+        Back
+      </Button>
+
+      <Card title={isEdit ? 'Edit Promotion' : 'Create New Promotion'}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={isEdit ? handleUpdatePromotion : handleCreatePromotion}
         >
-          Cancel
-        </button>
-      </form>
-    </div>
-  );
-
-  const renderEditPromotion = () => (
-    <div>
-      <h2>Edit Promotion</h2>
-      {currentPromotion && (
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const formData = {
-            name: e.target.name.value,
-            description: e.target.description.value,
-            type: e.target.type.value,
-            startTime: e.target.startTime.value,
-            endTime: e.target.endTime.value,
-            minSpending: e.target.minSpending.value || null,
-            rate: e.target.rate.value || null,
-            points: e.target.points.value || null
-          };
-          handleUpdatePromotion(promotionId, formData);
-        }}>
-          <div style={{ marginBottom: '10px' }}>
-            <label>Name:</label>
-            <input 
-              name="name" 
-              defaultValue={currentPromotion.name} 
-              required 
-            />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>Description:</label>
-            <textarea 
-              name="description" 
-              defaultValue={currentPromotion.description} 
-              required 
-            />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>Type:</label>
-            <select 
-              name="type" 
-              defaultValue={currentPromotion.type} 
-              required
-            >
-              <option value="automatic">Automatic</option>
-              <option value="one-time">One-Time</option>
-            </select>
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>Start Time:</label>
-            <input 
-              name="startTime" 
-              type="datetime-local" 
-              defaultValue={new Date(currentPromotion.startTime).toISOString().slice(0, 16)}
-              required 
-            />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>End Time:</label>
-            <input 
-              name="endTime" 
-              type="datetime-local" 
-              defaultValue={new Date(currentPromotion.endTime).toISOString().slice(0, 16)}
-              required 
-            />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>Min Spending (optional):</label>
-            <input 
-              name="minSpending" 
-              type="number" 
-              min="0" 
-              step="0.01" 
-              defaultValue={currentPromotion.minSpending || ''}
-            />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>Rate (optional):</label>
-            <input 
-              name="rate" 
-              type="number" 
-              min="0" 
-              step="0.01" 
-              defaultValue={currentPromotion.rate || ''}
-            />
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <label>Points (optional):</label>
-            <input 
-              name="points" 
-              type="number" 
-              min="0" 
-              defaultValue={currentPromotion.points || ''}
-            />
-          </div>
-          <button type="submit">Save Changes</button>
-          <button 
-            type="button" 
-            onClick={() => navigate(`/promotions/${promotionId}`)}
-            style={{ marginLeft: '10px' }}
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: 'Please input promotion name!' }]}
           >
-            Cancel
-          </button>
-        </form>
-      )}
+            <Input />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Description"
+            rules={[{ required: true, message: 'Please input promotion description!' }]}
+          >
+            <TextArea rows={4} />
+          </Form.Item>
+
+          <Form.Item
+            name="type"
+            label="Type"
+            rules={[{ required: true, message: 'Please select promotion type!' }]}
+          >
+            <Select>
+              <Option value="automatic">Automatic</Option>
+              <Option value="one-time">One-Time</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="startTime"
+            label="Start Time"
+            rules={[{ required: true, message: 'Please select start time!' }]}
+          >
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="endTime"
+            label="End Time"
+            rules={[{ required: true, message: 'Please select end time!' }]}
+          >
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="minSpending"
+            label="Minimum Spending (optional)"
+          >
+            <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="rate"
+            label="Discount Rate (optional)"
+          >
+            <InputNumber min={0} max={1} step={0.01} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="points"
+            label="Points (optional)"
+          >
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              {isEdit ? 'Update Promotion' : 'Create Promotion'}
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
     </div>
   );
 
   const renderContent = () => {
     if (promotionId === 'new') {
-      return renderCreatePromotion();
-    } else if (window.location.pathname.includes('/edit')) {
-      return renderEditPromotion();
+      return renderPromotionForm(false);
+    } else if (editing) {
+      return renderPromotionForm(true);
     } else if (promotionId) {
       return renderPromotionDetails();
     } else {
@@ -497,10 +474,20 @@ const ManagePromotions = () => {
 
   return (
     <div>
-  
-      <div style={{ padding: '20px' }}>
-        {loading ? <div>Loading...</div> : renderContent()}
-      </div>
+      <NavBar />
+      {loading && <div style={{ textAlign: 'center', padding: '24px' }}>Loading...</div>}
+      {!loading && renderContent()}
+
+      <Modal
+        title="Confirm Delete"
+        visible={deleteConfirmVisible}
+        onOk={handleDeletePromotion}
+        onCancel={() => setDeleteConfirmVisible(false)}
+        okText="Delete"
+        okButtonProps={{ danger: true }}
+      >
+        <p>Are you sure you want to delete this promotion? This action cannot be undone.</p>
+      </Modal>
     </div>
   );
 };

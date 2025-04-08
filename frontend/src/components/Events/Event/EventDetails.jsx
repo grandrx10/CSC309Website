@@ -1,4 +1,4 @@
-import { Descriptions, Card, Tag } from 'antd';
+import { Descriptions, Card, Tag, Space } from 'antd';
 import dayjs from 'dayjs';
 import PageHeader from '../Shared/PageHeader';
 import ActionButtons from '../Shared/ActionButtons';
@@ -9,29 +9,28 @@ const EventDetails = ({
   event, 
   onEdit, 
   onDelete, 
+  onEnroll,
+  enrollDisabled,
   showGuestManagement, 
   showStatus, 
   currentUser,
-  currentViewRole 
+  currentViewRole,
+  renderRoleDropdown
 }) => {
   const navigate = useNavigate();
 
-  // Check if delete button should be shown based on current view role
   const showDeleteButton = () => {
     if (!onDelete) return false;
     if (event.published) return false;
     return ['manager', 'superuser'].includes(currentViewRole);
   };
 
-  // Check if edit button should be shown based on current view role
   const showEditButton = () => {
     if (!onEdit) return false;
     if (['manager', 'superuser'].includes(currentViewRole)) {
       return true;
     }
-    return event.organizers && event.organizers.some(organizer => 
-      organizer.utorid === currentUser?.utorid
-    );
+    return event.organizers?.some(org => org.utorid === currentUser?.utorid);
   };
 
   return (
@@ -50,14 +49,20 @@ const EventDetails = ({
             title={event.name}
             onBack={() => navigate('/events')}
             extra={
-              <ActionButtons
-                onEdit={showEditButton() ? onEdit : undefined}
-                onDelete={showDeleteButton() ? onDelete : undefined}
-              />
+              <Space>
+                <ActionButtons
+                  onEdit={showEditButton() ? onEdit : undefined}
+                  onDelete={showDeleteButton() ? onDelete : undefined}
+                  onEnroll={onEnroll}
+                  enrollDisabled={enrollDisabled}
+                />
+                {renderRoleDropdown()}
+              </Space>
             }
           />
         </div>
 
+        {/* Rest of your EventDetails component remains the same */}
         <div style={{ padding: '0 24px 24px 24px' }}>
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Description">{event.description}</Descriptions.Item>
@@ -66,29 +71,18 @@ const EventDetails = ({
               {dayjs(event.startTime).format('MMM D, YYYY h:mm A')} - 
               {dayjs(event.endTime).format('h:mm A')}
             </Descriptions.Item>
+            <Descriptions.Item label="Attendance">
+              {event.numGuests} / {event.capacity} attendees
+              {event.numGuests >= event.capacity && (
+                <Tag color="red" style={{ marginLeft: 8 }}>Full</Tag>
+              )}
+            </Descriptions.Item>
             {showStatus && (
               <Descriptions.Item label="Status">
-                <span style={{ 
-                  color: event.published ? '#389e0d' : '#d48806',
-                  fontWeight: 500
-                }}>
+                <Tag color={event.published ? 'green' : 'orange'}>
                   {event.published ? 'Published' : 'Draft'}
-                </span>
+                </Tag>
               </Descriptions.Item>
-            )}
-            {showStatus && (
-              <>
-                <Descriptions.Item label="Points Remaining">
-                  <Tag color="blue" style={{ fontSize: 14, padding: '4px 8px' }}>
-                    {event.pointsRemain}
-                  </Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="Points Awarded">
-                  <Tag color="green" style={{ fontSize: 14, padding: '4px 8px' }}>
-                    {event.pointsAwarded}
-                  </Tag>
-                </Descriptions.Item>
-              </>
             )}
           </Descriptions>
         </div>

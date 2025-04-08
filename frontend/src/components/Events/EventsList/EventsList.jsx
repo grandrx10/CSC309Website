@@ -30,7 +30,8 @@ const EventsList = () => {
       dateRange: null,
       sortBy: 'startTime',
       sortOrder: 'asc',
-      organizerOnly: false
+      organizerOnly: false,
+      showFull: false
     },
     pendingSearch: ''
   });
@@ -146,13 +147,16 @@ const EventsList = () => {
         params.set('organizerId', user.utorid);
       }
 
+      if (state.filters.fullEvents) {
+        params.set('showFull', true);
+      }
+
       // Clean up undefined parameters
       Array.from(params.keys()).forEach(key => {
         if (params.get(key) === 'undefined' || params.get(key) === 'null' || params.get(key) === '') {
           params.delete(key);
         }
       });
-
       const response = await fetch(`http://localhost:3100/events?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -173,6 +177,7 @@ const EventsList = () => {
       const data = await response.json();
       
       const { count, results } = data;
+      console.log(results.length);
       
       setState(prev => ({
         ...prev,
@@ -206,6 +211,7 @@ const EventsList = () => {
     state.filters.sortBy,
     state.filters.sortOrder,
     state.filters.organizerOnly,
+    state.filters.showFull,
     navigate,
     user,
     userLoading,
@@ -330,6 +336,8 @@ const EventsList = () => {
         showStatusFilter={showSettings.showStatusFilter}
         showOrganizerFilter={showSettings.showOrganizerFilter && !!user}
         isOrganizerFilterActive={state.filters.organizerOnly}
+        showFullEvents={state.filters.showFull}
+        onShowFullChange={handleFilterChange}
       />
 
       <EventsTable

@@ -1737,7 +1737,7 @@ app.get('/events', authenticateUser, async (req, res) => {
         }
 
         // Count total events matching the filters
-        const count = await prisma.event.count({ where: filter });
+        let count = await prisma.event.count({ where: filter });
 
         // Prepare the orderBy object for sorting
         const validSortFields = ['name', 'location', 'startTime', 'endTime', 'capacity'];
@@ -1749,27 +1749,73 @@ app.get('/events', authenticateUser, async (req, res) => {
         } else {
             orderBy.startTime = 'asc';
         }
-
+        let events;
         // Fetch paginated events with sorting
-        let events = await prisma.event.findMany({
-            where: filter,
-            orderBy,
-            skip: (parseInt(page) - 1) * parseInt(limit),
-            take: parseInt(limit),
-            include: {
-                guests: true, // Include guests to calculate numGuests
-                organizers: {  // Add this
-                    select: {
-                        id: true,
-                        utorid: true,
-                        name: true
-                    }
-                }
-            },
-        });
-
         if (showFull === 'false') {
-            events = events.filter(event => event.capacity > event.guests.length);
+            // First get the IDs of non-full events that match all other filters
+            const nonFullEventIds = await prisma.$queryRaw`
+                SELECT e.id 
+                FROM "Event" e
+                LEFT JOIN "event_guests" eg ON eg."eventId" = e.id
+                WHERE e.capacity > (
+                    SELECT COUNT(*) 
+                    FROM "event_guests" eg2 
+                    WHERE eg2."eventId" = e.id
+                )
+                GROUP BY e.id
+                LIMIT ${parseInt(limit)}
+                OFFSET ${(parseInt(page) - 1) * parseInt(limit)}
+            `;
+
+            // Then get full event details for these IDs
+            events = await prisma.event.findMany({
+                where: {
+                    ...filter,
+                    id: { in: nonFullEventIds.map(e => e.id) }
+                },
+                include: {
+                    guests: true,
+                    organizers: {
+                        select: {
+                            id: true,
+                            utorid: true,
+                            name: true
+                        }
+                    }
+                },
+                orderBy
+            });
+
+            // Get accurate count of non-full events
+            count = await prisma.$queryRaw`
+                SELECT COUNT(*) as count
+                FROM "Event" e
+                WHERE e.capacity > (
+                    SELECT COUNT(*) 
+                    FROM "event_guests" eg 
+                    WHERE eg."eventId" = e.id
+                )
+            `;
+            count = Number(count[0].count);
+        } else {
+            // Original query when showFull is true
+            count = await prisma.event.count({ where: filter });
+            events = await prisma.event.findMany({
+                where: filter,
+                orderBy,
+                skip: (parseInt(page) - 1) * parseInt(limit),
+                take: parseInt(limit),
+                include: {
+                    guests: true,
+                    organizers: {
+                        select: {
+                            id: true,
+                            utorid: true,
+                            name: true
+                        }
+                    }
+                },
+            });
         }
 
         // Format the response based on the user's role

@@ -50,10 +50,10 @@
     z-index: 1;
     top: 0;
     left: 0;
-    background-color: #232323;
+    background-color: #363740;
     transition: .5s ease;
     overflow-x: hidden;
-    padding-top: 20px;
+    padding-top: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -95,9 +95,10 @@
 }
 
 .navbar-title {
-    font-size: 1.5rem;
-    margin-bottom: 20px;
-    color: white;
+    font-size: 1.3rem;
+    text-align: center;
+    margin-bottom: 10px;
+    color: #bfc2d2;
 }
 
 .navbar-menu {
@@ -116,12 +117,11 @@
     width: 100%;
     text-align: left;
     text-decoration: none;
-    font-size: 20px;
-    color: white;
+    font-size: 15px;
+    color: #A4A6B3;
     cursor: pointer;
     display: block;
-    padding: 15px 0;
-    padding-left: 30px;
+    padding: 15px 10px 15px 40px;
     transition: background-color 0.3s;
     border: none;
     background-color: transparent;
@@ -140,7 +140,7 @@
 }
 
 .navbar-menu li button:hover {
-    background-color: #575757;
+    background-color: #4b4c58;
 }
 
 .navbar-menu li button:hover::before {
@@ -155,6 +155,11 @@
 
 .navbar-menu .log-out {
     color: red;
+}
+
+.navbar-menu .sub-menu {
+    list-style-type: none;
+    margin: 0;
 }
 
 .transfer-failed {

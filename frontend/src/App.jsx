@@ -18,6 +18,10 @@ import Transfer from './pages/Features/Transactions/Transfer';
 import Redeem from './pages/Features/Transactions/Redeem';
 import Process from './pages/Features/Transactions/Process';
 import Purchase from './pages/Features/Transactions/Purchase';
+
+import Users from './pages/Features/Users/Users';
+import UpdateUser from './pages/Features/Users/UpdateUser';
+import PromoteUser from './pages/Features/Users/PromoteUser';
 import Profile from './components/Profile/Profile';
 import EditProfile from './components/Profile/EditProfile';
 import ChangePassword from './components/Profile/ChangePassword';
@@ -45,6 +49,10 @@ function App() {
         <Route path="/redeem" element={<Redeem />} />
         <Route path="/transactions/process" element={<Process />} />
         <Route path="/transactions/purchase" element={<Purchase />} />
+
+        <Route path="/users" element={<Users />} />
+        <Route path="/users/update" element={<UpdateUser />} />
+        <Route path="/users/promote" element={<PromoteUser />} />
         
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/edit" element={<EditProfile />} />

@@ -34,7 +34,7 @@ const prisma = new PrismaClient();
 const cors = require("cors");
 const e = require("express");
 app.use(cors({
-    origin: "http://localhost:3000", // Specify your frontend URL here
+    origin: process.env.FRONTEND_URL || "http://localhost:3000", // Specify your frontend URL here
     methods: "GET,POST,PUT,DELETE,PATCH", // Allow methods
     credentials: true, // Allow credentials (cookies, etc.)
 }));
@@ -42,7 +42,7 @@ app.use(cors({
 // For keeping track of last request
 const requestTimestamps = {};
 
-const jwt_secret = "SuperSecretKey!"
+const jwt_secret = process.env.JWT_SECRET || "SuperSecretKey!"
 app.get('/api/hello', (req, res) => {
     res.json({ message: "Hello from Railway backend!" });
   });

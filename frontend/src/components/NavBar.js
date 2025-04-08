@@ -96,12 +96,19 @@ const NavBar = ({ children }) => {
                                     <li><button onClick={() => navigate('/transactions/purchase')} className={isActive('/transactions/purchase')}>Create Purchase (Cashiers)</button></li>
                                 )}
                                 {isManager && (
+                                    <li><button onClick={() => navigate('/transactions/adjust')} className={isActive('/transactions/adjust')}>Adjust (Managers)</button></li>
+                                )}
+                                {isManager && (
                                     <li><button onClick={() => navigate('/transactions/all')} className={isActive('/transactions/all')}>View All (Managers)</button></li>
                                 )}
                             </ul>
                         )}
                     </li>
                     <li><button onClick={() => navigate('/events')} className={isActive('/events')}>Events</button></li>
+                    
+                    {isCashier && (
+                        <li><button onClick={() => navigate('/users/add')} className={isActive('/users/add')}>Register User (Cashiers)</button></li>
+                    )}
                     {isManager && (
                         <li><button onClick={() => navigate('/users')} className={isActive('/users')}>All Users (Managers)</button></li>
                     )}
@@ -109,10 +116,6 @@ const NavBar = ({ children }) => {
                         <li><button onClick={() => navigate('/users/update')} className={isActive('/users/update')}>Update User (Managers)</button></li>
                     )}
                     <li><button onClick={() => navigate('/profile')} className={isActive('/profile')}>Profile</button></li>
-                    
-                    {isCashier && (
-                        <li><button onClick={() => navigate('/users/add')} className={isActive('/users/add')}>Add User</button></li>
-                    )}
                     
                     <li><button onClick={() => navigate('/')} className={`log-out ${isActive('/')}`}>Log Out</button></li>
                 </ul>

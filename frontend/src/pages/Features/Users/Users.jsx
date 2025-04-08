@@ -112,13 +112,21 @@ const Users = () => {
         }));
     };
 
-    // Define table columns matching the API response.
+    // Define table columns matching the API response.// Define table columns matching the API response.
     const columns = [
         {
             title: 'UTORid',
             dataIndex: 'utorid',
             key: 'utorid',
             sorter: (a, b) => a.utorid.localeCompare(b.utorid),
+            render: (text, record) => (
+                <a
+                    style={{ color: 'blue' }}
+                    onClick={() => navigate(`/users/update/${record.id}`)} // Navigate to the update page
+                >
+                    {text}
+                </a>
+            ),
         },
         {
             title: 'Name',
@@ -156,6 +164,7 @@ const Users = () => {
             sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         },
     ];
+
 
     // Render filter inputs above the table.
     const renderFilters = () => (

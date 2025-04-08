@@ -19,6 +19,7 @@ import Transfer from './pages/Features/Transactions/Transfer';
 import Redeem from './pages/Features/Transactions/Redeem';
 import Process from './pages/Features/Transactions/Process';
 import Purchase from './pages/Features/Transactions/Purchase';
+import Adjustment from './pages/Features/Transactions/Adjustment';
 import AllTransactions from './pages/Features/Transactions/AllTransactions';
 
 import Users from './pages/Features/Users/Users';
@@ -54,10 +55,11 @@ function App() {
         <Route path="/transactions/redeem" element={<Redeem />} />
         <Route path="/transactions/process" element={<Process />} />
         <Route path="/transactions/purchase" element={<Purchase />} />
+        <Route path="/transactions/adjust" element={<Adjustment />} />
         <Route path="/transactions/all" element={<AllTransactions />} />
 
         <Route path="/users" element={<Users />} />
-        <Route path="/users/update" element={<UpdateUser />} />
+        <Route path="/users/update/:id" element={<UpdateUser />} />
         <Route path="/users/add" element={<AddUser />} />
 
         

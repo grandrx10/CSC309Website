@@ -1,73 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Form,
     Input,
     Button,
     Select,
     Card,
-    message,
     Skeleton,
     Switch,
     Alert
 } from 'antd';
+import { useParams } from 'react-router-dom';
 import NavBar from '../../../components/NavBar';
 
 const { Option } = Select;
 
 const UpdateUser = () => {
     const [form] = Form.useForm();
-    const [searchForm] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [updateLoading, setUpdateLoading] = useState(false);
     const [userData, setUserData] = useState(null);
-    const [userId, setUserId] = useState('');
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+    const { id } = useParams(); 
 
-    const fetchUser = async (id) => {
-        setLoading(true);
-        setError('');
-        setUserData(null);
-        setSuccessMsg('');
+    useEffect(() => {
+        const fetchUser = async () => {
+            setLoading(true);
+            setError('');
+            setUserData(null);
+            setSuccessMsg('');
 
-        try {
-            const token = localStorage.getItem('authToken');
-            const res = await fetch(`http://localhost:3100/users/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
+            try {
+                const token = localStorage.getItem('authToken');
+                const res = await fetch(`http://localhost:3100/users/${id}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    }
+                });
+
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        setError('User not found.');
+                    } else if (res.status === 401) {
+                        setError('Unauthorized. Please log in again.');
+                    } else {
+                        setError('Failed to fetch user.');
+                    }
+                    return;
                 }
-            });
 
-            if (!res.ok) {
-                if (res.status === 404) {
-                    setError('User not found.');
-                } else if (res.status === 401) {
-                    setError('Unauthorized. Please log in again.');
-                } else {
-                    setError('Failed to fetch user.');
-                }
-                return;
+                const data = await res.json();
+                setUserData(data);
+                form.setFieldsValue({
+                    email: data.email,
+                    verified: data.verified,
+                    suspicious: data.suspicious,
+                    role: data.role.toLowerCase(),
+                });
+            } catch (error) {
+                setError('Network error. Please try again.');
+            } finally {
+                setLoading(false);
             }
+        };
 
-            const data = await res.json();
-            setUserData(data);
-            form.setFieldsValue({
-                email: data.email,
-                verified: data.verified,
-                suspicious: data.suspicious,
-                role: data.role.toLowerCase(),
-            });
-        } catch (error) {
-            setError('Network error. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSearch = ({ searchUserId }) => {
-        setUserId(searchUserId);
-        fetchUser(searchUserId);
-    };
+        fetchUser();
+    }, [id]);
 
     const handleUpdate = async (values) => {
         setUpdateLoading(true);
@@ -83,7 +82,7 @@ const UpdateUser = () => {
                 role: values.role ?? null,
             };
 
-            const res = await fetch(`http://localhost:3100/users/${userId}`, {
+            const res = await fetch(`http://localhost:3100/users/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -110,31 +109,6 @@ const UpdateUser = () => {
     return (
         <NavBar>
             <div style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
-                <Card title="Search for a User to Update" style={{ marginBottom: 24 }}>
-                    <Form form={searchForm} layout="inline" onFinish={handleSearch}>
-                        <Form.Item
-                            name="searchUserId"
-                            rules={[{ required: true, message: 'Please enter a user ID' }]}
-                        >
-                            <Input placeholder="Enter User ID (e.g. utorid)" />
-                        </Form.Item>
-                        <Form.Item>
-                            <Button type="primary" htmlType="submit">
-                                Fetch User
-                            </Button>
-                        </Form.Item>
-                    </Form>
-
-                    {error && (
-                        <Alert
-                            style={{ marginTop: 16 }}
-                            message={error}
-                            type="error"
-                            showIcon
-                        />
-                    )}
-                </Card>
-
                 {loading && <Skeleton active paragraph={{ rows: 6 }} />}
 
                 {userData && (
@@ -204,6 +178,15 @@ const UpdateUser = () => {
                             </Form.Item>
                         </Form>
                     </Card>
+                )}
+
+                {error && (
+                    <Alert
+                        style={{ marginTop: 16 }}
+                        message={error}
+                        type="error"
+                        showIcon
+                    />
                 )}
             </div>
         </NavBar>

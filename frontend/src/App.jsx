@@ -4,7 +4,6 @@ import SignIn from './pages/Signin/Signin';
 import Home from './pages/Home/Home';
 import Event from './components/Events/Event/Event';
 import EditEvent from './components/Events/Event/EditEvent';
-import EventsView from './components/Events/EventsList/EventsView';
 import EventsList from './components/Events/EventsList/EventsList';
 import CreateEvent from './pages/Events/CreateEvent';
 

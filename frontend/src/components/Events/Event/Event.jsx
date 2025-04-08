@@ -12,6 +12,7 @@ const ROLE_HIERARCHY = {
   'cashier': ['cashier', 'regular'],
   'regular': ['regular']
 };
+const API_URL =  "http://localhost:3100"; // import.meta.env.VITE_API_URL ||
 
 const Event = () => {
   const { eventId } = useParams();
@@ -28,7 +29,7 @@ const Event = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -59,7 +60,7 @@ const Event = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}`, {
+      const response = await fetch(API_URL + `/events/${eventId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -141,7 +142,7 @@ const Event = () => {
       };
       delete payload.dateRange;
 
-      const response = await fetch(`http://localhost:3100/events/${eventId}`, {
+      const response = await fetch(API_URL + `/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -166,7 +167,7 @@ const Event = () => {
   const deleteEvent = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}`, {
+      const response = await fetch(API_URL + `/events/${eventId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -203,7 +204,7 @@ const Event = () => {
   const handleJoinEvent = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}/guests/me`, {
+      const response = await fetch(API_URL + `/events/${eventId}/guests/me`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const port = (() => {
+let port = (() => {
     const args = process.argv;
 
     if (args.length !== 3) {
@@ -17,6 +17,8 @@ const port = (() => {
 
     return num;
 })();
+
+port = process.env.PORT || 3100;
 
 const express = require("express");
 const app = express();
@@ -41,7 +43,9 @@ app.use(cors({
 const requestTimestamps = {};
 
 const jwt_secret = "SuperSecretKey!"
-
+app.get('/api/hello', (req, res) => {
+    res.json({ message: "Hello from Railway backend!" });
+  });
 // Authentication Middleware
 const authenticateUser = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1]; // Get the token from the Authorization header

@@ -16,9 +16,9 @@ import {
   Space 
 } from 'antd';
 import "./Signin.module.css"; // You can keep your custom styles if needed
-
+require('dotenv').config()
 const { Title, Text } = Typography;
-const API_URL = process.env.REACT_APP_API_URL || "https://lively-surprise-production.up.railway.app";
+const API_URL = process.env.REACT_APP_API_URL || "https://localhost:3100";
 function SignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

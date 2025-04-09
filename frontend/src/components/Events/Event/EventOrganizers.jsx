@@ -3,6 +3,7 @@ import { UserAddOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 
 const { Title } = Typography;
+require('dotenv').config()
 const API_URL =  process.env.REACT_APP_API_URL || "http://localhost:3100";
 const EventOrganizers = ({ eventId, canManageOrganizers }) => {
   const [organizers, setOrganizers] = useState([]);

@@ -16,45 +16,48 @@ const prisma = new PrismaClient();
 
 const cors = require("cors");
 const e = require("express");
-const allowedOrigins = [
+// 1. First middleware to log all incoming requests
+app.use((req, res, next) => {
+    console.log(`\n[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    console.log('Origin:', req.headers.origin);
+    console.log('Headers:', req.headers);
+    next();
+  });
+  
+  // 2. Enhanced CORS configuration
+  const allowedOrigins = [
     "https://csc309website-production.up.railway.app",
     process.env.FRONTEND_URL
-  ].filter(Boolean); // Remove any undefined values
+  ].filter(Boolean);
   
   const corsOptions = {
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      console.log('CORS Origin Check:', origin);
+      if (!origin || allowedOrigins.some(allowed => {
+        const result = origin === allowed || origin === allowed + '/';
+        console.log(`Comparing ${origin} with ${allowed}:`, result);
+        return result;
+      })) {
         callback(null, true);
       } else {
+        console.log('CORS Blocked:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
     methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS",
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    credentials: true,
+    preflightContinue: false, // Important for OPTIONS handling
+    optionsSuccessStatus: 204
   };
   
-  // 2. Apply CORS middleware
+  // 3. Apply CORS middleware
   app.use(cors(corsOptions));
-
-  app.options('*', cors(corsOptions));
-
-// 4. Add necessary headers middleware
-app.use((req, res, next) => {
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  next();
-});
 
 // For keeping track of last request
 const requestTimestamps = {};
 
 const jwt_secret = process.env.JWT_SECRET || "SuperSecretKey!"
-app.get('/api/hello', (req, res) => {
-    res.json({ message: "Hello from Railway backend!" });
-  });
 // Authentication Middleware
 const authenticateUser = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1]; // Get the token from the Authorization header

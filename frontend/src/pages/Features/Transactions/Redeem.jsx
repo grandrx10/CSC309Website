@@ -5,6 +5,7 @@ import { Input, Button, Typography, Space, Card, Alert, Result } from 'antd';
 import { CheckCircleTwoTone } from '@ant-design/icons';
 
 const { Paragraph } = Typography;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const SuccessMessage = ({ redemptionId, amount, utorId, remark }) => (
     <Result
@@ -45,7 +46,7 @@ const Redeem = () => {
         try {
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch(`http://localhost:3100/users/me/transactions`, {
+            const response = await fetch(`${API_URL}/users/me/transactions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

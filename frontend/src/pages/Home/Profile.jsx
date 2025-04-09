@@ -20,6 +20,7 @@ import NavBar from '../../components/NavBar';
 import dayjs from 'dayjs';
 
 const { TabPane } = Tabs;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const Profile = () => {
   const [form] = Form.useForm();
@@ -38,7 +39,7 @@ const Profile = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -73,7 +74,7 @@ const Profile = () => {
         birthday: values.birthday ? values.birthday.format('YYYY-MM-DD') : null
       };
 
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -99,7 +100,7 @@ const Profile = () => {
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -122,7 +123,7 @@ const Profile = () => {
   const handlePasswordChange = async (values) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3100/users/me/password', {
+      const response = await fetch(API_URL + '/users/me/password', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

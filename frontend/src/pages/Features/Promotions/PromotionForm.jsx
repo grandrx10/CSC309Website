@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import NavBar from '../../../components/NavBar';
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+
 const PromotionForm = ({ isEdit }) => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -25,7 +27,7 @@ const PromotionForm = ({ isEdit }) => {
                 try {
                     setLoading(true);
                     const token = localStorage.getItem('authToken');
-                    const response = await fetch(`http://localhost:3100/promotions/${id}`, {
+                    const response = await fetch(`${API_URL}/promotions/${id}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }
@@ -70,7 +72,7 @@ const PromotionForm = ({ isEdit }) => {
             setError(null);
             
             const token = localStorage.getItem('authToken');
-            const url = isEdit ? `http://localhost:3100/promotions/${id}` : 'http://localhost:3100/promotions';
+            const url = isEdit ? `${API_URL}/promotions/${id}` : API_URL + '/promotions';
             const method = isEdit ? 'PATCH' : 'POST';
     
             // Prepare payload with all required fields

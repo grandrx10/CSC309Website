@@ -3,6 +3,8 @@ import NavBar from '../../../components/NavBar';
 import { Input, Button, Space, Alert, Card, Result } from 'antd';
 import { CheckCircleTwoTone } from '@ant-design/icons';
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+
 const SuccessMessage = ({ amount, userId }) => (
     <Result
         icon={<CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: '48px' }} />}
@@ -23,7 +25,7 @@ const Process = () => {
         try {
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch(`http://localhost:3100/transactions/${redemptionId}/processed`, {
+            const response = await fetch(`${API_URL}/transactions/${redemptionId}/processed`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",

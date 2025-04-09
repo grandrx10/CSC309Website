@@ -14,6 +14,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import NavBar from '../../../components/NavBar';
 
 const { Option } = Select;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const Users = () => {
     const [state, setState] = useState({
@@ -58,7 +59,7 @@ const Users = () => {
                 params.set('activated', state.filters.activated);
             }
 
-            const response = await fetch(`http://localhost:3100/users?${params.toString()}`, {
+            const response = await fetch(`${API_URL}/users?${params.toString()}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -112,13 +113,21 @@ const Users = () => {
         }));
     };
 
-    // Define table columns matching the API response.
+    // Define table columns matching the API response.// Define table columns matching the API response.
     const columns = [
         {
             title: 'UTORid',
             dataIndex: 'utorid',
             key: 'utorid',
             sorter: (a, b) => a.utorid.localeCompare(b.utorid),
+            render: (text, record) => (
+                <a
+                    style={{ color: 'blue' }}
+                    onClick={() => navigate(`/users/update/${record.id}`)} // Navigate to the update page
+                >
+                    {text}
+                </a>
+            ),
         },
         {
             title: 'Name',
@@ -156,6 +165,7 @@ const Users = () => {
             sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         },
     ];
+
 
     // Render filter inputs above the table.
     const renderFilters = () => (

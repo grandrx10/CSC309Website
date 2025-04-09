@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import styles from './CreateEvent.module.css';
 
 const { TextArea } = Input;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const CreateEvent = () => {
   const [form] = Form.useForm();
@@ -14,7 +15,7 @@ const CreateEvent = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-        const response = await fetch('http://localhost:3100/events', {
+        const response = await fetch(API_URL + '/events', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -1371,7 +1371,7 @@ app.get('/users/me/transactions', authenticateUser, isRegularOrHigher, async (re
         }
 
         // Filter by amount (must be used with operator)
-        if (amount !== null && amount !== undefined) {
+        if (amount !== null) {
             if (!operator || !['gte', 'lte'].includes(operator)) {
                 return res.status(400).json({ error: 'operator must be "gte" or "lte" when filtering by amount' });
             }
@@ -1404,12 +1404,14 @@ app.get('/users/me/transactions', authenticateUser, isRegularOrHigher, async (re
                 id: transaction.id,
                 type: transaction.type,
                 spent: transaction.spent,
-                amount: transaction.amount,
+                // Use earned for event transactions, amount for others
+                amount: transaction.type.toLowerCase() === 'event' ? transaction.earned || transaction.amount : transaction.amount,
                 promotionIds: transaction.promotions.map((promotion) => promotion.id),
                 remark: transaction.remark,
                 createdBy: transaction.createdBy,
                 relatedId: transaction.relatedId,
-                date: transaction.createdAt
+                // Include earned field for event transactions
+                ...(transaction.type.toLowerCase() === 'event' && { earned: transaction.earned })
             };
 
             // Add direction for transfers

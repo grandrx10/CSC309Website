@@ -18,8 +18,7 @@ import {
 import "./Signin.module.css"; // You can keep your custom styles if needed
 
 const { Title, Text } = Typography;
-console.log(process.env)
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+const API_URL = process.env.REACT_APP_API_URL || "https://lively-surprise-production.up.railway.app";
 function SignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

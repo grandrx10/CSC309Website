@@ -1371,7 +1371,7 @@ app.get('/users/me/transactions', authenticateUser, isRegularOrHigher, async (re
         }
 
         // Filter by amount (must be used with operator)
-        if (amount !== null) {
+        if (amount !== null && amount !== undefined) {
             if (!operator || !['gte', 'lte'].includes(operator)) {
                 return res.status(400).json({ error: 'operator must be "gte" or "lte" when filtering by amount' });
             }
@@ -1410,6 +1410,7 @@ app.get('/users/me/transactions', authenticateUser, isRegularOrHigher, async (re
                 remark: transaction.remark,
                 createdBy: transaction.createdBy,
                 relatedId: transaction.relatedId,
+                date: transaction.createdAt,
                 // Include earned field for event transactions
                 ...(transaction.type.toLowerCase() === 'event' && { earned: transaction.earned })
             };

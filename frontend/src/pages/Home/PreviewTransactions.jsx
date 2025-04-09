@@ -72,7 +72,7 @@ const RecentTransactions = () => {
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {transactions.map(tx => (
                         <li key={tx.id} style={{ marginBottom: '12px' }}>
-                            <div><strong style={{ color: getTransactionColor(tx.type) }}>{tx.type.toUpperCase()}</strong> — Ends at {formatDate(tx.date)}</div>
+                            <div><strong style={{ color: getTransactionColor(tx.type) }}>{tx.type.toUpperCase()}</strong> — {formatDate(tx.date)}</div>
                             <div>Amount: {tx.amount} points</div>
                         </li>
                     ))}

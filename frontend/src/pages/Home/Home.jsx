@@ -82,7 +82,7 @@ const Home = () => {
                     <Col xs={24} md={12}>
                         <Row justify="space-between" align="middle">
                             <Col>
-                                <Title level={3}>Recent Transactions</Title>
+                                <Title level={3}>Your Transactions</Title>
                             </Col>
                             <Col>
                                 <Link to="/transactions/me">

@@ -4,6 +4,8 @@ import { Form, Input, Button, Card, message } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
 import NavBar from '../../components/NavBar';
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+
 const ChangePassword = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -11,7 +13,7 @@ const ChangePassword = () => {
   const handlePasswordChange = async (values) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3100/users/me/password', {
+      const response = await fetch(API_URL + '/users/me/password', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

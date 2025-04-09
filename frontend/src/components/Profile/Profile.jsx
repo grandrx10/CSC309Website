@@ -4,6 +4,8 @@ import { Descriptions, Button, Avatar, Card, Divider, Skeleton, Space, message }
 import { UserOutlined, EditOutlined, LockOutlined } from '@ant-design/icons';
 import NavBar from '../../components/NavBar';
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ const Profile = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

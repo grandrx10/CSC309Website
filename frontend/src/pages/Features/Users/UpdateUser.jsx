@@ -13,6 +13,7 @@ import { useParams } from 'react-router-dom';
 import NavBar from '../../../components/NavBar';
 
 const { Option } = Select;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const UpdateUser = () => {
     const [form] = Form.useForm();
@@ -32,7 +33,7 @@ const UpdateUser = () => {
 
             try {
                 const token = localStorage.getItem('authToken');
-                const res = await fetch(`http://localhost:3100/users/${id}`, {
+                const res = await fetch(`${API_URL}/users/${id}`, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,

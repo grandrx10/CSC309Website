@@ -15,6 +15,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import NavBar from '../../../components/NavBar';
 
 const { Option } = Select;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const Transactions = () => {
     const [state, setState] = useState({
@@ -66,11 +67,8 @@ const Transactions = () => {
                 params.set('amount', state.filters.amount);
                 params.set('operator', state.filters.operator);
             }
-
-            const url = `http://localhost:3100/transactions?${params.toString()}`;
-            console.log('Fetching data from URL:', url); // Print the URL being requested
-
-            const response = await fetch(url, {
+            
+            const response = await fetch(`${API_URL}/transactions?${params.toString()}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

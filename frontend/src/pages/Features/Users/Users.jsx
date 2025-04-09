@@ -14,6 +14,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import NavBar from '../../../components/NavBar';
 
 const { Option } = Select;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const Users = () => {
     const [state, setState] = useState({
@@ -58,7 +59,7 @@ const Users = () => {
                 params.set('activated', state.filters.activated);
             }
 
-            const response = await fetch(`http://localhost:3100/users?${params.toString()}`, {
+            const response = await fetch(`${API_URL}/users?${params.toString()}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

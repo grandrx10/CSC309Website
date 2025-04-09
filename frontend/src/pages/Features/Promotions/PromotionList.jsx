@@ -7,6 +7,7 @@ import NavBar from '../../../components/NavBar';
 
 const { Search } = Input;
 const { Option } = Select;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const ROLE_HIERARCHY = {
   'superuser': ['superuser', 'manager', 'cashier', 'regular'],
@@ -36,7 +37,7 @@ const PromotionList = () => {
   const fetchUserRole = useCallback(async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch("http://localhost:3100/users/me", {
+      const response = await fetch(API_URL + "/users/me", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +84,7 @@ const PromotionList = () => {
         ...(filters.ended && { ended: filters.ended })
       });
 
-      const response = await fetch(`http://localhost:3100/promotions?${params.toString()}`, {
+      const response = await fetch(`${API_URL}/promotions?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

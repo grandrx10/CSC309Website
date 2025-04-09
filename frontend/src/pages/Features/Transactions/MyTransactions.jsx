@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import NavBar from '../../../components/NavBar';
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+
 const MyTransactions = () => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -67,7 +69,7 @@ const MyTransactions = () => {
             params.append('amount', filters.amount);
             params.append('operator', filters.operator);
 
-            const response = await fetch(`http://localhost:3100/users/me/transactions?${params.toString()}`, {
+            const response = await fetch(`${API_URL}/users/me/transactions?${params.toString()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

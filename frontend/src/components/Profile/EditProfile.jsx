@@ -5,6 +5,8 @@ import { UserOutlined, UploadOutlined } from '@ant-design/icons';
 import NavBar from '../../components/NavBar';
 import dayjs from 'dayjs';
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+
 const EditProfile = () => {
   const [form] = Form.useForm();
   const [userData, setUserData] = useState(null);
@@ -20,7 +22,7 @@ const EditProfile = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -55,7 +57,7 @@ const EditProfile = () => {
         birthday: values.birthday ? values.birthday.format('YYYY-MM-DD') : null
       };
 
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -82,7 +84,7 @@ const EditProfile = () => {
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -10,6 +10,8 @@ import {
 import NavBar from '../../../components/NavBar';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+
 const AddUser = () => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
@@ -23,7 +25,7 @@ const AddUser = () => {
         
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('http://localhost:3100/users', {
+            const response = await fetch(API_URL + '/users', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

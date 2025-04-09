@@ -5,6 +5,8 @@ import { ArrowLeftOutlined, EditOutlined, DeleteOutlined } from '@ant-design/ico
 import dayjs from 'dayjs';
 import NavBar from '../../../components/NavBar';
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
+
 const PromotionDetailView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -17,7 +19,7 @@ const PromotionDetailView = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('authToken');
-        const response = await fetch(`http://localhost:3100/promotions/${id}`, {
+        const response = await fetch(`${API_URL}/promotions/${id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -45,7 +47,7 @@ const PromotionDetailView = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/promotions/${id}`, {
+      const response = await fetch(`${API_URL}/promotions/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

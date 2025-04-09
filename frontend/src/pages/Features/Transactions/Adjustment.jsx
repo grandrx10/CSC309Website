@@ -1,54 +1,33 @@
 import React, { useState } from 'react';
 import NavBar from '../../../components/NavBar';
-import { Input, Button, Space, Card, Alert, Result, InputNumber } from 'antd';
+import { Input, Button, Space, Card, Alert, Result, InputNumber, Radio } from 'antd';
 import { CheckCircleTwoTone } from '@ant-design/icons';
 
 const SuccessMessage = ({ utorId, amount }) => (
   <Result
     icon={<CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: '48px' }} />}
     title="Adjustment Successful!"
-    subTitle={
-      <>
-        <div>You adjusted {utorId}'s transaction by {amount} points.</div>
-      </>
-    }
+    subTitle={<div>You adjusted {utorId}'s transaction by {amount} points.</div>}
   />
 );
 
 const Adjustment = () => {
   const [utorId, setUtorId] = useState('');
-  const [amount, setAmount] = useState(null);  // Initialize amount as null
+  const [amount, setAmount] = useState(null);  // Always positive
+  const [operation, setOperation] = useState('add'); // 'add' or 'remove'
   const [relatedId, setRelatedId] = useState('');
   const [remark, setRemark] = useState('');
   const [promotions, setPromotions] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleUtorIdChange = (event) => {
-    setUtorId(event.target.value);
-  };
-
-  const handleAmountChange = (value) => {
-    setAmount(value);  // Amount can now be positive or negative
-  };
-
-  const handleRelatedIdChange = (event) => {
-    setRelatedId(event.target.value);
-  };
-
-  const handleRemarkChange = (event) => {
-    setRemark(event.target.value);
-  };
-
-  const handlePromotionsChange = (event) => {
-    setPromotions(event.target.value);
-  };
-
   const handleAdjustment = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
-      
+
+      const finalAmount = operation === 'remove' ? -Math.abs(amount) : Math.abs(amount);
+
       const response = await fetch(`http://localhost:3100/transactions`, {
         method: "POST",
         headers: {
@@ -58,7 +37,7 @@ const Adjustment = () => {
         body: JSON.stringify({
           utorid: utorId,
           type: "adjustment",
-          amount: amount,
+          amount: finalAmount,
           relatedId: relatedId,
           remark: remark,
           promotionIds: promotions.split(' ').map(id => id.trim()).filter(id => id !== '')
@@ -73,6 +52,7 @@ const Adjustment = () => {
         setRelatedId('');
         setRemark('');
         setPromotions('');
+        setOperation('add');
       } else {
         const data = await response.json();
         setResult({ success: false, error: `Error ${response.status}: ${data.error}` });
@@ -92,47 +72,51 @@ const Adjustment = () => {
 
             <label htmlFor="utorId"><b>Enter User's UTORid:</b></label>
             <Input
-              type="text"
               id="utorId"
               value={utorId}
-              onChange={handleUtorIdChange}
+              onChange={(e) => setUtorId(e.target.value)}
               placeholder="Enter UTORid"
             />
 
-            <label htmlFor="amount"><b>Enter Adjustment Amount (Points to add/remove):</b></label>
+            <label htmlFor="amount"><b>Enter Adjustment Amount:</b></label>
+            <Radio.Group
+              onChange={(e) => setOperation(e.target.value)}
+              value={operation}
+              style={{ marginBottom: '8px' }}
+            >
+              <Radio.Button value="add">Add</Radio.Button>
+              <Radio.Button value="remove">Remove</Radio.Button>
+            </Radio.Group>
             <InputNumber
               id="amount"
               value={amount}
-              onChange={handleAmountChange}
+              onChange={setAmount}
               placeholder="Enter Amount"
               style={{ width: '100%' }}
-              min={-100000}  // Optional: set a min value for safety, adjust as necessary
+              min={0}
             />
 
             <label htmlFor="relatedId"><b>Related Transaction ID:</b></label>
             <Input
-              type="text"
               id="relatedId"
               value={relatedId}
-              onChange={handleRelatedIdChange}
+              onChange={(e) => setRelatedId(e.target.value)}
               placeholder="Enter Related Transaction ID"
             />
 
             <label htmlFor="promotions"><b>Enter Promotion IDs (Optional, separated by spaces):</b></label>
             <Input
-              type="text"
               id="promotions"
               value={promotions}
-              onChange={handlePromotionsChange}
+              onChange={(e) => setPromotions(e.target.value)}
               placeholder="Enter Promotion IDs"
             />
 
             <label htmlFor="remark"><b>Remark (Optional):</b></label>
             <Input
-              type="text"
               id="remark"
               value={remark}
-              onChange={handleRemarkChange}
+              onChange={(e) => setRemark(e.target.value)}
               placeholder="Enter Remark"
             />
 
@@ -145,11 +129,8 @@ const Adjustment = () => {
               Complete Adjustment
             </Button>
 
-            {result && result.success && (
-              <SuccessMessage 
-                utorId={result.utorId}
-                amount={result.amount}
-              />
+            {result?.success && (
+              <SuccessMessage utorId={result.utorId} amount={result.amount} />
             )}
 
             {result && !result.success && (

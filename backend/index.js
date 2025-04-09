@@ -1057,7 +1057,7 @@ app.get('/transactions', authenticateUser, isManagerOrHigher, async (req, res) =
             const baseResponse = {
                 id: transaction.id,
                 utorid: transaction.utorid,
-                amount: transaction.amount, // Always return the actual amount
+                amount: transaction.type.toLowerCase() === 'event' ? transaction.earned : transaction.amount,
                 type: transaction.type,
                 spent: transaction.spent,
                 promotionIds: transaction.promotions.map((promotion) => promotion.id),

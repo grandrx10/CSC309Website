@@ -16,10 +16,14 @@ const prisma = new PrismaClient();
 
 const cors = require("cors");
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000", //"https://csc309website-production.up.railway.app",
-    methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS", 
-    credentials: true, 
-}));
+     origin: '*'
+   }));
+
+// {
+//     origin: process.env.FRONTEND_URL || "http://localhost:3000", //"https://csc309website-production.up.railway.app",
+//     methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS", 
+//     credentials: true, 
+// }
 
 // For keeping track of last request
 const requestTimestamps = {};

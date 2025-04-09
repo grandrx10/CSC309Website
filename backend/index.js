@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const port = process.env.PORT || process.argv[2] || 3100;
+const port = process.env.PORT || 8080;
 
 const express = require("express");
 const app = express();

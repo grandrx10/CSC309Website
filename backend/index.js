@@ -2768,63 +2768,101 @@ app.get('/promotions', authenticateUser, async (req, res) => {
     const {
         name,
         type,
-        started,
-        ended,
         page = 1,
         limit = 10,
     } = req.query;
-    const userRole = req.user.role.toUpperCase();
-    
+    const userRole = req.user.role; // Assuming the user's role is stored in the token
+    const userUtorid = req.user.utorid; // Assuming the user's UTORid is stored in the token
+    if (page < 1 || limit < 1) {
+        return res.status(400).json({ err: "WHATRE YOU DOING?" })
+    }
     try {
         const now = new Date();
+
+        // Build the filter object
         const filter = {};
 
-        // Regular users can only see active promotions they haven't used
+        // Regular users can only see active promotions they have not used
         if (['REGULAR', 'CASHIER'].includes(userRole)) {
             filter.startTime = { lte: now }; // Promotions that have started
-            filter.endTime = { gt: now };    // Promotions that haven't ended
+            filter.endTime = { gt: now }; // Promotions that have not ended
 
             // Exclude promotions the user has already used
             const usedPromotions = await prisma.usage.findMany({
-                where: { userId: req.user.userId },
-                select: { promotionId: true },
+                where: {
+                    userId: req.user.userId, // Assuming the user's ID is stored in the token
+                },
+                select: {
+                    promotionId: true,
+                },
             });
-            
-            const usedPromotionIds = usedPromotions.map(u => u.promotionId);
+
+            const usedPromotionIds = usedPromotions.map(usage => usage.promotionId);
             if (usedPromotionIds.length > 0) {
                 filter.id = { notIn: usedPromotionIds };
             }
-        } 
-        // Managers can see all promotions with additional filters
-        else if (['MANAGER', 'SUPERUSER'].includes(userRole)) {
-            // Validate that both started and ended are not specified together
-            if (started !== undefined && ended !== undefined) {
-                return res.status(400).json({ 
-                    error: 'cannot specify both started and ended' 
-                });
-            }
-            
-            if (started !== undefined) {
-                filter.startTime = started === 'true' ? 
-                    { lte: now } : { gt: now };
-            }
-            
-            if (ended !== undefined) {
-                filter.endTime = ended === 'true' ? 
-                    { lte: now } : { gt: now };
-            }
         }
 
-        // Apply name filter if provided - make it more robust
-        if (name && typeof name === 'string' && name.trim() !== '') {
-            filter.name = { 
-                contains: name.trim(), 
-                mode: 'insensitive' 
-            };
+        // Filter by name
+        if (name) {
+            filter.OR = [
+              { name: { contains: name.toLowerCase() } },
+              { name: { contains: name.toUpperCase() } },
+              { name: { contains: name } }
+            ];
+          }
+
+        // Filter by type
+        if (type) {
+            if (type !== 'automatic' && type !== 'one-time') {
+                return res.status(400).json({ error: 'type must be either "automatic" or "one-time"' });
+            }
+            filter.type = type;
         }
 
-        // Rest of the code remains the same...
+        // Count total promotions matching the filters
+        const count = await prisma.promotion.count({ where: filter });
 
+        // Fetch paginated promotions
+        const promotions = await prisma.promotion.findMany({
+            where: filter,
+            skip: (page - 1) * limit,
+            take: parseInt(limit),
+            select: {
+                id: true,
+                name: true,
+                type: true,
+                endTime: true,
+                startTime: true,
+                minSpending: true,
+                rate: true,
+                points: true,
+            },
+        });
+
+        // Format the response
+        const results = promotions.map(promotion => ({
+            id: promotion.id,
+            name: promotion.name,
+            type: promotion.type,
+            endTime: promotion.endTime.toISOString(),
+            startTime: promotion.startTime.toISOString(),
+            minSpending: promotion.minSpending,
+            rate: promotion.rate,
+            points: promotion.points,
+        }));
+
+        // Return the response
+        res.status(200).json({
+            count,
+            results,
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'internal server error' });
+    }
+});
 
 
 // GET /promotions/:promotionId - Get a single promotion (Regular or higher)

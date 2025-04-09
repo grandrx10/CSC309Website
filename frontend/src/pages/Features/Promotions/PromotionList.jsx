@@ -111,28 +111,34 @@ const PromotionList = () => {
         limit: pagination.pageSize,
       });
   
-      // Always add name filter if it exists (even empty string)
-      if (filters.name !== undefined) {
-        params.append('name', filters.name);
+      // Add filters
+      if (filters.name) {
+        params.set('name', filters.name);
       }
       
       if (filters.type) {
-        params.append('type', filters.type);
+        params.set('type', filters.type);
       }
       
       if (isManagerView) {
-        // Only add started/ended if they are explicitly set
         if (filters.started !== undefined) {
-          params.append('started', filters.started);
+          params.set('started', filters.started);
         }
         if (filters.ended !== undefined) {
-          params.append('ended', filters.ended);
+          params.set('ended', filters.ended);
         }
-      } else {
-        // For non-manager views, only filter for active promotions
-        params.append('started', 'true');
-        params.append('ended', 'false');
       }
+  
+      // Log the constructed URL and parameters
+      console.log('Fetching promotions with parameters:', {
+        page: pagination.current,
+        limit: pagination.pageSize,
+        name: filters.name,
+        type: filters.type,
+        started: isManagerView ? filters.started : undefined,
+        ended: isManagerView ? filters.ended : undefined
+      });
+      console.log('Full API URL:', `${API_URL}/promotions?${params.toString()}`);
   
       const response = await fetch(`${API_URL}/promotions?${params.toString()}`, {
         headers: {
@@ -141,31 +147,25 @@ const PromotionList = () => {
         }
       });
   
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to fetch promotions');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response data:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch promotions');
       }
   
       const data = await response.json();
-      let results = data.results || [];
-  
-      // Additional client-side filtering for non-manager view
-      if (!isManagerView) {
-        const now = dayjs();
-        results = results.filter(promotion => {
-          const endTime = dayjs(promotion.endTime);
-          return now.isBefore(endTime);
-        });
-      }
-  
-      setPromotions(results);
+      console.log('Received data:', data);
+      
+      setPromotions(data.results || []);
       setPagination(prev => ({ 
         ...prev, 
-        total: data.count || results.length 
+        total: data.count || 0 
       }));
     } catch (err) {
       console.error('Error fetching promotions:', err);
-      message.error(err.message);
+      message.error(err.message || 'Failed to load promotions');
       setPromotions([]);
     } finally {
       setLoading(false);
@@ -177,12 +177,13 @@ const PromotionList = () => {
   }, [fetchPromotions]);
 
   const handleFilterChange = (name, value) => {
+    const trimmedValue = value?.trim();
     const newFilters = { 
       ...filters, 
-      [name]: value === '' ? undefined : value 
+      [name]: trimmedValue === '' ? undefined : trimmedValue 
     };
     setFilters(newFilters);
-    setPendingSearch(name === 'name' ? value : pendingSearch); 
+    setPendingSearch(name === 'name' ? value : pendingSearch);
     const newPagination = { ...pagination, current: 1 };
     setPagination(newPagination);
     updateURL(newPagination, newFilters);
@@ -194,22 +195,29 @@ const PromotionList = () => {
   };
 
   const handleRoleChange = (role) => {
-    setCurrentViewRole(role);
-    localStorage.setItem('currentViewRole', role);
-    
-    // Reset filters completely when changing role
-    const newFilters = {
-      name: filters.name || '',
-      type: filters.type || '',
-      started: undefined,
-      ended: undefined
-    };
-    
-    setFilters(newFilters);
-    const newPagination = { ...pagination, current: 1 };
-    setPagination(newPagination);
-    updateURL(newPagination, newFilters);
+  setCurrentViewRole(role);
+  localStorage.setItem('currentViewRole', role);
+  
+  // Reset filters completely when changing role
+  const newFilters = {
+    name: filters.name || '',
+    type: filters.type || '',
+    started: undefined,
+    ended: undefined
   };
+  
+  // If switching to non-manager view, set filters to only show active promotions
+  if (!['manager', 'superuser'].includes(role)) {
+    const now = new Date().toISOString();
+    newFilters.started = 'true';
+    newFilters.ended = 'false';
+  }
+  
+  setFilters(newFilters);
+  const newPagination = { ...pagination, current: 1 };
+  setPagination(newPagination);
+  updateURL(newPagination, newFilters);
+};
 
   const renderRoleDropdown = () => {
     if (!userRole) return null;

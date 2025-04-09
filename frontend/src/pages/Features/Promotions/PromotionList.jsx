@@ -38,8 +38,8 @@ const PromotionList = () => {
       filters: {
         name: params.get('name') || '',
         type: params.get('type') || '',
-        started: params.get('started') || '',
-        ended: params.get('ended') || '',
+        started: params.get('started') || undefined,
+        ended: params.get('ended') || undefined
       }
     };
   };
@@ -105,7 +105,6 @@ const PromotionList = () => {
       setLoading(true);
       const token = localStorage.getItem('authToken');
       
-      // Prepare query parameters from current state
       const params = new URLSearchParams({
         page: pagination.current,
         limit: pagination.pageSize,
@@ -115,10 +114,14 @@ const PromotionList = () => {
       if (filters.name) params.append('name', filters.name);
       if (filters.type) params.append('type', filters.type);
       
-      // Only add started/ended filters for manager or higher
       if (isManagerView) {
-        if (filters.started !== '') params.append('started', filters.started);
-        if (filters.ended !== '') params.append('ended', filters.ended);
+        // Only add started/ended if they are explicitly set
+        if (filters.started === 'true' || filters.started === 'false') {
+          params.append('started', filters.started);
+        }
+        if (filters.ended === 'true' || filters.ended === 'false') {
+          params.append('ended', filters.ended);
+        }
       }
   
       const response = await fetch(`${API_URL}/promotions?${params.toString()}`, {
@@ -165,6 +168,19 @@ const PromotionList = () => {
   const handleRoleChange = (role) => {
     setCurrentViewRole(role);
     localStorage.setItem('currentViewRole', role);
+    
+    // Reset filters completely when changing role
+    const newFilters = {
+      name: filters.name || '',
+      type: filters.type || '',
+      started: undefined,
+      ended: undefined
+    };
+    
+    setFilters(newFilters);
+    const newPagination = { ...pagination, current: 1 };
+    setPagination(newPagination);
+    updateURL(newPagination, newFilters);
   };
 
   const renderRoleDropdown = () => {

@@ -2768,58 +2768,71 @@ app.get('/promotions', authenticateUser, async (req, res) => {
     const {
         name,
         type,
+        started,
+        ended,
         page = 1,
         limit = 10,
     } = req.query;
-    const userRole = req.user.role; // Assuming the user's role is stored in the token
-    const userUtorid = req.user.utorid; // Assuming the user's UTORid is stored in the token
-    if (page < 1 || limit < 1) {
-        return res.status(400).json({ err: "WHATRE YOU DOING?" })
-    }
+    const userRole = req.user.role.toUpperCase();
+    
     try {
         const now = new Date();
-
-        // Build the filter object
         const filter = {};
 
-        // Regular users can only see active promotions they have not used
+        // Regular users can only see active promotions they haven't used
         if (['REGULAR', 'CASHIER'].includes(userRole)) {
             filter.startTime = { lte: now }; // Promotions that have started
-            filter.endTime = { gt: now }; // Promotions that have not ended
+            filter.endTime = { gt: now };    // Promotions that haven't ended
 
             // Exclude promotions the user has already used
             const usedPromotions = await prisma.usage.findMany({
-                where: {
-                    userId: req.user.userId, // Assuming the user's ID is stored in the token
-                },
-                select: {
-                    promotionId: true,
-                },
+                where: { userId: req.user.userId },
+                select: { promotionId: true },
             });
-
-            const usedPromotionIds = usedPromotions.map(usage => usage.promotionId);
+            
+            const usedPromotionIds = usedPromotions.map(u => u.promotionId);
             if (usedPromotionIds.length > 0) {
                 filter.id = { notIn: usedPromotionIds };
             }
+        } 
+        // Managers can see all promotions with additional filters
+        else if (['MANAGER', 'SUPERUSER'].includes(userRole)) {
+            // Validate that both started and ended are not specified together
+            if (started !== undefined && ended !== undefined) {
+                return res.status(400).json({ 
+                    error: 'cannot specify both started and ended' 
+                });
+            }
+            
+            if (started !== undefined) {
+                filter.startTime = started === 'true' ? 
+                    { lte: now } : { gt: now };
+            }
+            
+            if (ended !== undefined) {
+                filter.endTime = ended === 'true' ? 
+                    { lte: now } : { gt: now };
+            }
         }
 
-        // Filter by name
+        // Apply name filter if provided
         if (name) {
             filter.name = { contains: name, mode: 'insensitive' };
         }
 
-        // Filter by type
+        // Apply type filter if provided
         if (type) {
             if (type !== 'automatic' && type !== 'one-time') {
-                return res.status(400).json({ error: 'type must be either "automatic" or "one-time"' });
+                return res.status(400).json({ 
+                    error: 'type must be "automatic" or "one-time"' 
+                });
             }
             filter.type = type;
         }
 
-        // Count total promotions matching the filters
+        // Get count and results
         const count = await prisma.promotion.count({ where: filter });
-
-        // Fetch paginated promotions
+        
         const promotions = await prisma.promotion.findMany({
             where: filter,
             skip: (page - 1) * limit,
@@ -2828,31 +2841,29 @@ app.get('/promotions', authenticateUser, async (req, res) => {
                 id: true,
                 name: true,
                 type: true,
-                endTime: true,
                 startTime: true,
+                endTime: true,
                 minSpending: true,
                 rate: true,
                 points: true,
             },
         });
 
-        // Format the response
-        const results = promotions.map(promotion => ({
-            id: promotion.id,
-            name: promotion.name,
-            type: promotion.type,
-            endTime: promotion.endTime.toISOString(),
-            startTime: promotion.startTime.toISOString(),
-            minSpending: promotion.minSpending,
-            rate: promotion.rate,
-            points: promotion.points,
+        // Format results based on user role
+        const results = promotions.map(p => ({
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            endTime: p.endTime.toISOString(),
+            ...(['MANAGER', 'SUPERUSER'].includes(userRole) && {
+                startTime: p.startTime.toISOString(),
+            }),
+            minSpending: p.minSpending,
+            rate: p.rate,
+            points: p.points,
         }));
 
-        // Return the response
-        res.status(200).json({
-            count,
-            results,
-        });
+        res.status(200).json({ count, results });
 
     } catch (error) {
         console.error(error);
@@ -2860,81 +2871,7 @@ app.get('/promotions', authenticateUser, async (req, res) => {
     }
 });
 
-// GET /promotions - Get a list of promotions (Manager or higher)
-app.get('/promotions', authenticateUser, isManagerOrHigher, async (req, res) => {
-    try {
-        const { started, ended } = req.query;
 
-        // Validate that both started and ended are not specified together
-        if (started !== null && ended !== null) {
-            return res.status(400).json({
-                error: 'specifying both started and ended parameters is not allowed'
-            });
-        }
-
-        // Build filter conditions based on query parameters
-        const filterConditions = {};
-
-        const now = new Date();
-
-        if (started !== null) {
-            const isStarted = started === 'true';
-            if (isStarted) {
-                // Promotions that have started (startTime <= now)
-                filterConditions.startTime = {
-                    lte: now
-                };
-            } else {
-                // Promotions that have not started (startTime > now)
-                filterConditions.startTime = {
-                    gt: now
-                };
-            }
-        }
-
-        if (ended !== null) {
-            const isEnded = ended === 'true';
-            if (isEnded) {
-                // Promotions that have ended (endTime <= now)
-                filterConditions.endTime = {
-                    lte: now
-                };
-            } else {
-                // Promotions that have not ended (endTime > now)
-                filterConditions.endTime = {
-                    gt: now
-                };
-            }
-        }
-
-        // Query promotions with the filter conditions
-        const promotions = await prisma.promotion.findMany({
-            where: filterConditions,
-            select: {
-                id: true,
-                name: true,
-                type: true,
-                startTime: true,
-                endTime: true,
-                minSpending: true,
-                rate: true,
-                points: true
-            }
-        });
-
-        // Format the response
-        const response = {
-            count: promotions.length,
-            results: promotions
-        };
-
-        return res.status(200).json(response);
-
-    } catch (error) {
-        console.error('Error retrieving promotions:', error);
-        return res.status(500).json({ error: 'failed to retrieve promotions' });
-    }
-});
 
 // GET /promotions/:promotionId - Get a single promotion (Regular or higher)
 app.get('/promotions/:promotionId', authenticateUser, async (req, res) => {

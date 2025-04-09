@@ -10,6 +10,8 @@ const MyTransactions = () => {
     const [error, setError] = useState(null);
     const [inputErrors, setInputErrors] = useState({});
     const [searchParams, setSearchParams] = useSearchParams();
+    const [userCache, setUserCache] = useState({});
+    const [eventCache, setEventCache] = useState({});
     const navigate = useNavigate();
 
     // Get initial state from URL or use defaults
@@ -19,15 +21,75 @@ const MyTransactions = () => {
     const promotionId = searchParams.get('promotionId') || '';
     const amount = searchParams.get('amount') || '0';
     const operator = searchParams.get('operator') || 'gte';
+    const relatedId = searchParams.get('relatedId') || '';
     
     const [filters, setFilters] = useState({ 
         type,
         promotionId,
         amount,
-        operator
+        operator,
+        relatedId
     });
 
+    // Fetch user details for transfers and redemptions
+    const fetchUserDetails = useCallback(async (utorid) => {
+        if (!utorid || userCache[utorid]) return userCache[utorid];
+        
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_URL}/users?name=${utorid}&limit=1`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.results.length > 0) {
+                    const user = data.results[0];
+                    setUserCache(prev => ({ ...prev, [utorid]: user }));
+                    return user;
+                }
+            }
+            return null;
+        } catch (err) {
+            console.error('Error fetching user:', err);
+            return null;
+        }
+    }, [userCache]);
+
+    // Fetch event details for event transactions
+    const fetchEventDetails = useCallback(async (eventId) => {
+        if (!eventId || eventCache[eventId]) return eventCache[eventId];
+        
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_URL}/events/${eventId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const event = await response.json();
+                setEventCache(prev => ({ ...prev, [eventId]: event }));
+                return event;
+            }
+            return null;
+        } catch (err) {
+            console.error('Error fetching event:', err);
+            return null;
+        }
+    }, [eventCache]);
+
     const validatePromotionId = (value) => {
+        if (value === '') return true;
+        return /^\d+$/.test(value);
+    };
+
+    const validateRelatedId = (value) => {
         if (value === '') return true;
         return /^\d+$/.test(value);
     };
@@ -39,6 +101,14 @@ const MyTransactions = () => {
         if (name === 'promotionId') {
             const valid = validatePromotionId(value);
             newErrors.promotionId = valid ? null : 'Promotion ID must contain only numbers';
+            setInputErrors(newErrors);
+            
+            if (!valid && value !== '') return;
+        }
+
+        if (name === 'relatedId') {
+            const valid = validateRelatedId(value);
+            newErrors.relatedId = valid ? null : 'Related ID must contain only numbers';
             setInputErrors(newErrors);
             
             if (!valid && value !== '') return;
@@ -66,6 +136,7 @@ const MyTransactions = () => {
             
             if (filters.type) params.append('type', filters.type);
             if (filters.promotionId) params.append('promotionId', filters.promotionId);
+            if (filters.relatedId && filters.type) params.append('relatedId', filters.relatedId);
             params.append('amount', filters.amount);
             params.append('operator', filters.operator);
 
@@ -84,11 +155,25 @@ const MyTransactions = () => {
             const data = await response.json();
             setTransactions(data.results || []);
             
+            // Pre-fetch related data
+            for (const transaction of data.results || []) {
+                if (transaction.type.toLowerCase() === 'transfer' && transaction.relatedId) {
+                    fetchUserDetails(transaction.createdBy);
+                }
+                if (transaction.type.toLowerCase() === 'event' && transaction.relatedId) {
+                    fetchEventDetails(transaction.relatedId);
+                }
+                if (transaction.type.toLowerCase() === 'redemption' && transaction.processedBy) {
+                    fetchUserDetails(transaction.processedBy);
+                }
+            }
+            
             const newSearchParams = new URLSearchParams();
             newSearchParams.set('page', page);
             newSearchParams.set('limit', limit);
             if (filters.type) newSearchParams.set('type', filters.type);
             if (filters.promotionId) newSearchParams.set('promotionId', filters.promotionId);
+            if (filters.relatedId && filters.type) newSearchParams.set('relatedId', filters.relatedId);
             newSearchParams.set('amount', filters.amount);
             newSearchParams.set('operator', filters.operator);
             
@@ -100,7 +185,7 @@ const MyTransactions = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, limit, filters, setSearchParams]);
+    }, [page, limit, filters, setSearchParams, fetchUserDetails, fetchEventDetails]);
 
     useEffect(() => {
         fetchTransactions();
@@ -158,17 +243,95 @@ const MyTransactions = () => {
                 return `Points Adjustment - ${transaction.amount > 0 ? 'Added' : 'Deducted'} ${Math.abs(transaction.amount)} points`;
             case 'transfer':
                 if (transaction.amount > 0) {
-                    return `Received ${transaction.amount} points from ${transaction.createdBy}`;
+                    return `Received ${transaction.amount} points`;
                 } else {
-                    return `Sent ${Math.abs(transaction.amount)} points to ${transaction.relatedId || 'another user'}`;
+                    return `Sent ${Math.abs(transaction.amount)} points`;
                 }
             case 'redemption':
                 return `Redeemed ${transaction.amount} points`;
             case 'event':
-                return `Event Reward - Received ${transaction.amount} points`;
+                return `Event Reward - Received ${transaction.earned || transaction.amount} points`;
             default:
                 return transaction.type;
         }
+    };
+
+    const getTransactionDetails = (transaction) => {
+        const details = [];
+        
+        // Common details for all transaction types
+        details.push(`Transaction ID: ${transaction.id}`);
+        
+        // Show related ID for all transaction types that have it
+        if (transaction.relatedId) {
+            details.push(`Related ID: ${transaction.relatedId}`);
+        }
+
+        // Type-specific details
+        switch (transaction.type.toLowerCase()) {
+            case 'purchase':
+                details.push(`Spent: $${transaction.spent?.toFixed(2) || '0.00'}`);
+                details.push(`Points Earned: ${transaction.amount}`);
+                break;
+                
+            case 'adjustment':
+                details.push(`Points ${transaction.amount > 0 ? 'Added' : 'Deducted'}: ${Math.abs(transaction.amount)}`);
+                break;
+                
+            case 'transfer':
+                if (transaction.amount > 0) {
+                    // Received points
+                    const sender = userCache[transaction.createdBy];
+                    details.push(`From: ${sender ? sender.name : transaction.createdBy}`);
+                } else {
+                    // Sent points
+                    if (transaction.relatedId) {
+                        const receiver = userCache[transaction.relatedId];
+                        details.push(`To: ${receiver ? receiver.name : `User ID ${transaction.relatedId}`}`);
+                    }
+                }
+                details.push(`Points: ${Math.abs(transaction.amount)}`);
+                break;
+                
+            case 'redemption':
+                details.push(`Points Redeemed: ${transaction.amount}`);
+                if (transaction.processedBy) {
+                    const cashier = userCache[transaction.processedBy];
+                    details.push(`Processed by: ${cashier ? cashier.name : transaction.processedBy}`);
+                }
+                if (transaction.processed) {
+                    details.push(`Status: Completed`);
+                } else {
+                    details.push(`Status: Pending`);
+                }
+                break;
+                
+            case 'event':
+                const eventPoints = transaction.earned || transaction.amount;
+                details.push(`Points Awarded: ${eventPoints}`);
+                if (transaction.relatedId) {
+                    const event = eventCache[transaction.relatedId];
+                    details.push(`Event: ${event ? event.name : `Event ID ${transaction.relatedId}`}`);
+                }
+                break;
+        }
+        
+        // Promotion details if applicable
+        if (transaction.promotionIds?.length > 0) {
+            details.push(`Promotions Applied: ${transaction.promotionIds.join(', ')}`);
+        }
+        
+        // Remark if exists
+        if (transaction.remark) {
+            details.push(`Note: ${transaction.remark}`);
+        }
+        
+        // Suspicious flag
+        if (transaction.suspicious) {
+            details.push(`⚠️ Flagged as suspicious`);
+        }
+        
+        return details;
     };
 
     return (
@@ -227,6 +390,28 @@ const MyTransactions = () => {
                         )}
                     </div>
 
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <input
+                            type="text"
+                            name="relatedId"
+                            placeholder="Related ID"
+                            value={filters.relatedId}
+                            onChange={handleFilterChange}
+                            style={{ 
+                                padding: '8px', 
+                                borderRadius: '4px', 
+                                border: `1px solid ${inputErrors.relatedId ? '#ff4d4f' : '#d9d9d9'}`, 
+                                minWidth: '120px' 
+                            }}
+                            disabled={!filters.type}
+                        />
+                        {inputErrors.relatedId && (
+                            <span style={{ color: '#ff4d4f', fontSize: '12px', marginTop: '4px' }}>
+                                {inputErrors.relatedId}
+                            </span>
+                        )}
+                    </div>
+
                     <div style={{ display: 'flex', gap: '5px' }}>
                         <select
                             name="operator"
@@ -271,33 +456,29 @@ const MyTransactions = () => {
                                         }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                            <h4 style={{ color: getTransactionColor(transaction.type), margin: 0 }}>
-                                                {getTransactionTitle(transaction)}
-                                            </h4>
-                                            <span style={{ color: '#666' }}>
-                                                {formatDate(transaction?.createdAt)}
-                                            </span>
+                                            <div>
+                                                <h4 style={{ color: getTransactionColor(transaction.type), margin: 0 }}>
+                                                    {getTransactionTitle(transaction)}
+                                                </h4>
+                                                <span style={{ color: '#666', fontSize: '12px' }}>
+                                                    {formatDate(transaction?.createdAt)}
+                                                </span>
+                                            </div>
                                         </div>
                                         
-                                        {transaction.remark && (
-                                            <p style={{ marginBottom: '10px' }}>
-                                                <strong>Note:</strong> {transaction.remark}
-                                            </p>
-                                        )}
-                                        
-                                        {transaction.type.toLowerCase() === 'purchase' && (
-                                            <p><strong>Spent:</strong> ${transaction.spent?.toFixed(2) || '0.00'}</p>
-                                        )}
-                                        
-                                        {transaction.promotionIds?.length > 0 && (
-                                            <p><strong>Promotions:</strong> {transaction.promotionIds.join(', ')}</p>
-                                        )}
-                                        
-                                        {transaction.suspicious && (
-                                            <p style={{ color: '#f5222d' }}>
-                                                <strong>Flagged:</strong> This transaction has been marked as suspicious
-                                            </p>
-                                        )}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                            {getTransactionDetails(transaction).map((detail, index) => (
+                                                <div key={index} style={{ fontSize: '14px' }}>
+                                                    {detail.includes('Flagged') ? (
+                                                        <span style={{ color: '#f5222d' }}>{detail}</span>
+                                                    ) : detail.includes('Note:') ? (
+                                                        <span style={{ fontStyle: 'italic' }}>{detail}</span>
+                                                    ) : (
+                                                        detail
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

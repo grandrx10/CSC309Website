@@ -12,22 +12,22 @@
     "antd": "^5.24.6",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
+    "dotenv": "^16.4.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-qr-code": "^2.0.15",
     "react-router-dom": "^6.30.0",
     "react-scripts": "^5.0.1",
-    "web-vitals": "^2.1.4",
-    "serve": "^14.2.0" 
+    "serve": "^14.2.0",
+    "web-vitals": "^2.1.4"
   },
-  
-"scripts": {
-  "start": "serve -s build -l 3000",
-  "build": "react-scripts build",      
-  "dev": "react-scripts start",       
-  "test": "react-scripts test",
-  "eject": "react-scripts eject"
-},
+  "scripts": {
+    "start": "serve -s build -l 8080",
+    "build": "react-scripts build",
+    "dev": "react-scripts start",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
   "eslintConfig": {
     "extends": [
       "react-app",

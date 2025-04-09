@@ -4,6 +4,7 @@ import QRCode from 'react-qr-code';
 import { Card, Typography, Spin, Alert, Row, Col, Statistic } from 'antd';
 
 const { Title, Paragraph } = Typography;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const Home = () => {
   const [userInfo, setUserInfo] = useState(null);
@@ -13,7 +14,7 @@ const Home = () => {
     const getInfo = async () => {
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch("http://localhost:3100/users/me", {
+        const response = await fetch(API_URL + "/users/me", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

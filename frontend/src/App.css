@@ -118,6 +118,7 @@
     text-align: left;
     text-decoration: none;
     font-size: 15px;
+    font-weight: 500;
     color: #A4A6B3;
     cursor: pointer;
     display: block;
@@ -151,6 +152,57 @@
     background-color: #00352e;
     color: white;
     font-weight: bold;
+}
+
+.menu-item-container {
+    width: 100%;
+    text-align: left;
+    font-weight: 400;
+    color: #A4A6B3;
+    cursor: pointer;
+    padding: 15px 10px 15px 40px;
+    transition: background-color 0.3s;
+    background-color: transparent;
+    position: relative;
+    display: block;
+}
+
+.menu-item-container:hover {
+    background-color: #4b4c58;
+}
+
+.menu-item-container.active {
+    background-color: #00352e;
+    color: white;
+    font-weight: bold;
+}
+
+.menu-button-label {
+    display: block;
+    font-size: 16px;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+}
+
+.role-subtitle {
+    font-size: 12px;
+    color: #c3b2b2;
+}
+
+.menu-item-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5px;
+    height: 100%;
+    background-color: transparent;
+    transition: background-color 0.3s;
+}
+
+.menu-item-container:hover::before {
+    background-color: white;
 }
 
 .navbar-menu .log-out {

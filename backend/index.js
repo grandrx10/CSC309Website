@@ -17,7 +17,7 @@ const prisma = new PrismaClient();
 const cors = require("cors");
 const e = require("express");
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000", // Specify your frontend URL here
+    origin: process.env.FRONTEND_URL || "https://csc309website-production.up.railway.app/", // Specify your frontend URL here
     methods: "GET,POST,PUT,DELETE,PATCH", // Allow methods
     credentials: true, // Allow credentials (cookies, etc.)
 }));

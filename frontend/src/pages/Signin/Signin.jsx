@@ -17,7 +17,7 @@ import {
 } from 'antd';
 import "./Signin.module.css"; // You can keep your custom styles if needed
 const { Title, Text } = Typography;
-const API_URL = process.env.REACT_APP_API_URL || "https://localhost:3100";
+const API_URL = process.env.REACT_APP_API_URL || "https://csc-309-website-9pvx.vercel.app";
 console.log("THIS IS MY ENV VARIABLE:")
 console.log(process.env)
 function SignIn() {

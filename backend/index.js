@@ -21,6 +21,7 @@ app.use(cors({
     methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS", 
     credentials: true, 
 }));
+app.options('*', cors()); // Handle all OPTIONS requests
 
 // For keeping track of last request
 const requestTimestamps = {};

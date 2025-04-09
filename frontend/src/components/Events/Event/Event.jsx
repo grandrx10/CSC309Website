@@ -12,7 +12,6 @@ const ROLE_HIERARCHY = {
   'cashier': ['cashier', 'regular'],
   'regular': ['regular']
 };
-require('dotenv').config()
 const API_URL =  process.env.REACT_APP_API_URL || "http://localhost:3100"; // import.meta.env.VITE_API_URL ||
 
 const Event = () => {

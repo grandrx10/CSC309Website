@@ -1,7 +1,6 @@
 import { Table, Button, Space, message, Form, Input, Modal, Typography, Row, Col, Card, InputNumber } from 'antd';
 import { UserAddOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
-
 const { Title } = Typography;
 const API_URL =  process.env.REACT_APP_API_URL || "http://localhost:3100";
 const EventGuests = ({ eventId, canManageGuests, canAwardPoints, canDeleteGuests }) => {

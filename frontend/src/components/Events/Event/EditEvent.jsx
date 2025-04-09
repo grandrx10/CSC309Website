@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { message, Form, Input, DatePicker, Switch, Button, Card, InputNumber, Skeleton } from 'antd';
 import dayjs from 'dayjs';
 import NavBar from '../../NavBar';
-require('dotenv').config()
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 const API_URL =  process.env.REACT_APP_API_URL || "http://localhost:3100"; 

@@ -1288,15 +1288,73 @@ app.get('/users/me/transactions', authenticateUser, isRegularOrHigher, async (re
         page = 1,
         limit = 10,
     } = req.query;
-    const userId = req.user.userId; // Access the authenticated user's ID
+    const userId = req.user.userId;
+    const userUtorid = req.user.utorid;
 
     try {
         // Build the filter object
-        const filters = { utorid: req.user.utorid }; // Only include transactions owned by the user
+        const filters = {
+            OR: [
+                // 1. Transactions where the user is directly involved (utorid matches)
+                { utorid: userUtorid },
+                // 2. Transfer transactions where the user is the recipient (relatedId matches)
+                {
+                    AND: [
+                        { type: 'transfer' },
+                        { relatedId: userId }
+                    ]
+                },
+                // 3. Adjustment transactions created by the user
+                {
+                    AND: [
+                        { type: 'adjustment' },
+                        { createdBy: userUtorid }
+                    ]
+                }
+            ]
+        };
 
-        // Filter by type
+        // Filter by type (if specified, it will override the OR conditions for that type)
         if (type) {
-            filters.type = type;
+            // For transfers, we still want to see both incoming and outgoing
+            if (type === 'transfer') {
+                filters.OR = [
+                    { 
+                        AND: [
+                            { type: 'transfer' },
+                            { utorid: userUtorid }
+                        ]
+                    },
+                    { 
+                        AND: [
+                            { type: 'transfer' },
+                            { relatedId: userId }
+                        ]
+                    }
+                ];
+            }
+            // For adjustments, we want to see those created by the user
+            else if (type === 'adjustment') {
+                filters.OR = [
+                    { 
+                        AND: [
+                            { type: 'adjustment' },
+                            { createdBy: userUtorid }
+                        ]
+                    }
+                ];
+            }
+            // For other types, just filter by type and utorid
+            else {
+                filters.OR = [
+                    { 
+                        AND: [
+                            { type: type },
+                            { utorid: userUtorid }
+                        ]
+                    }
+                ];
+            }
         }
 
         // Filter by relatedId (must be used with type)
@@ -1326,8 +1384,8 @@ app.get('/users/me/transactions', authenticateUser, isRegularOrHigher, async (re
         // Get the paginated list of transactions
         const transactions = await prisma.transaction.findMany({
             where: filters,
-            skip: (page - 1) * limit, // Calculate the offset
-            take: parseInt(limit), // Number of transactions per page
+            skip: (page - 1) * limit,
+            take: parseInt(limit),
             include: {
                 promotions: {
                     select: {
@@ -1335,21 +1393,36 @@ app.get('/users/me/transactions', authenticateUser, isRegularOrHigher, async (re
                     },
                 },
             },
+            orderBy: {
+                createdAt: 'desc'
+            }
         });
 
         // Format the response
-        const results = transactions.map((transaction) => ({
-            id: transaction.id,
-            type: transaction.type,
-            spent: transaction.spent,
-            amount: transaction.amount,
-            promotionIds: transaction.promotions.map((promotion) => promotion.id),
-            remark: transaction.remark,
-            createdBy: transaction.createdBy,
-            ...(transaction.type === 'adjustment' || transaction.type === 'transfer' || transaction.type === 'redemption'
-                ? { relatedId: transaction.relatedId }
-                : {}),
-        }));
+        const results = transactions.map((transaction) => {
+            const baseResponse = {
+                id: transaction.id,
+                type: transaction.type,
+                spent: transaction.spent,
+                amount: transaction.amount,
+                promotionIds: transaction.promotions.map((promotion) => promotion.id),
+                remark: transaction.remark,
+                createdBy: transaction.createdBy,
+                relatedId: transaction.relatedId
+            };
+
+            // Add direction for transfers
+            if (transaction.type === 'transfer') {
+                baseResponse.direction = transaction.utorid === userUtorid ? 'outgoing' : 'incoming';
+            }
+
+            // Add ownership flag for adjustments
+            if (transaction.type === 'adjustment') {
+                baseResponse.isOwner = transaction.createdBy === userUtorid;
+            }
+
+            return baseResponse;
+        });
 
         // Respond with the count and results
         res.status(200).json({

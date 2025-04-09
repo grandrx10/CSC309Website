@@ -21,6 +21,7 @@ const PromotionList = () => {
   const [loading, setLoading] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [currentViewRole, setCurrentViewRole] = useState('regular');
+  const [pendingSearch, setPendingSearch] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -55,11 +56,11 @@ const PromotionList = () => {
     params.set('page', newPagination.current);
     params.set('limit', newPagination.pageSize);
     
-    // Add filter parameters
+    // Add filter parameters only if they have values
     if (newFilters.name) params.set('name', newFilters.name);
     if (newFilters.type) params.set('type', newFilters.type);
-    if (newFilters.started) params.set('started', newFilters.started);
-    if (newFilters.ended) params.set('ended', newFilters.ended);
+    if (newFilters.started !== undefined) params.set('started', newFilters.started);
+    if (newFilters.ended !== undefined) params.set('ended', newFilters.ended);
     
     navigate({ search: params.toString() }, { replace: true });
   }, [navigate]);
@@ -110,18 +111,27 @@ const PromotionList = () => {
         limit: pagination.pageSize,
       });
   
-      // Add filters if they exist
-      if (filters.name) params.append('name', filters.name);
-      if (filters.type) params.append('type', filters.type);
+      // Always add name filter if it exists (even empty string)
+      if (filters.name !== undefined) {
+        params.append('name', filters.name);
+      }
+      
+      if (filters.type) {
+        params.append('type', filters.type);
+      }
       
       if (isManagerView) {
         // Only add started/ended if they are explicitly set
-        if (filters.started === 'true' || filters.started === 'false') {
+        if (filters.started !== undefined) {
           params.append('started', filters.started);
         }
-        if (filters.ended === 'true' || filters.ended === 'false') {
+        if (filters.ended !== undefined) {
           params.append('ended', filters.ended);
         }
+      } else {
+        // For non-manager views, only filter for active promotions
+        params.append('started', 'true');
+        params.append('ended', 'false');
       }
   
       const response = await fetch(`${API_URL}/promotions?${params.toString()}`, {
@@ -137,8 +147,22 @@ const PromotionList = () => {
       }
   
       const data = await response.json();
-      setPromotions(data.results || []);
-      setPagination(prev => ({ ...prev, total: data.count || 0 }));
+      let results = data.results || [];
+  
+      // Additional client-side filtering for non-manager view
+      if (!isManagerView) {
+        const now = dayjs();
+        results = results.filter(promotion => {
+          const endTime = dayjs(promotion.endTime);
+          return now.isBefore(endTime);
+        });
+      }
+  
+      setPromotions(results);
+      setPagination(prev => ({ 
+        ...prev, 
+        total: data.count || results.length 
+      }));
     } catch (err) {
       console.error('Error fetching promotions:', err);
       message.error(err.message);
@@ -153,8 +177,12 @@ const PromotionList = () => {
   }, [fetchPromotions]);
 
   const handleFilterChange = (name, value) => {
-    const newFilters = { ...filters, [name]: value };
+    const newFilters = { 
+      ...filters, 
+      [name]: value === '' ? undefined : value 
+    };
     setFilters(newFilters);
+    setPendingSearch(name === 'name' ? value : pendingSearch); 
     const newPagination = { ...pagination, current: 1 };
     setPagination(newPagination);
     updateURL(newPagination, newFilters);
@@ -219,11 +247,13 @@ const PromotionList = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      render: isManagerView ? (text, record) => (
+      render: (text, record) => isManagerView ? (
         <Button type="link" onClick={() => navigate(`/promotions/${record.id}`)}>
           {text}
         </Button>
-      ) : (text) => text,
+      ) : (
+        <span>{text}</span>
+      ),
     },
     {
       title: 'Type',
@@ -231,17 +261,29 @@ const PromotionList = () => {
       key: 'type',
       render: (type) => type === 'automatic' ? 'Automatic' : 'One-Time'
     },
-    ...(isManagerView ? [{
+    {
       title: 'Start Time',
       dataIndex: 'startTime',
       key: 'startTime',
       render: (text) => dayjs(text).format('MMM D, YYYY h:mm A')
-    }] : []),
+    },
     {
       title: 'End Time',
       dataIndex: 'endTime',
       key: 'endTime',
       render: (text) => dayjs(text).format('MMM D, YYYY h:mm A')
+    },
+    {
+      title: 'Min Spending',
+      dataIndex: 'minSpending',
+      key: 'minSpending',
+      render: (value) => value ? `$${value.toFixed(2)}` : 'N/A'
+    },
+    {
+      title: 'Rate',
+      dataIndex: 'rate',
+      key: 'rate',
+      render: (value) => value ? `${(value * 100).toFixed(0)}%` : 'N/A'
     },
     {
       title: 'Status',
@@ -296,9 +338,11 @@ const PromotionList = () => {
               <Search
                 placeholder="Search by name"
                 allowClear
-                value={filters.name}
-                onChange={(e) => handleFilterChange('name', e.target.value)}
+                value={pendingSearch}
+                onChange={(e) => setPendingSearch(e.target.value)}
+                onSearch={(value) => handleFilterChange('name', value)}
                 style={{ width: 200 }}
+                enterButton
               />
               <Select
                 placeholder="Type"
@@ -315,7 +359,14 @@ const PromotionList = () => {
                   <Select
                     placeholder="Start Status"
                     value={filters.started || undefined}
-                    onChange={(value) => handleFilterChange('started', value)}
+                    onChange={(value) => {
+                      // Clear ended filter when selecting started
+                      const newFilters = { ...filters, started: value, ended: undefined };
+                      setFilters(newFilters);
+                      const newPagination = { ...pagination, current: 1 };
+                      setPagination(newPagination);
+                      updateURL(newPagination, newFilters);
+                    }}
                     style={{ width: 140 }}
                     allowClear
                   >
@@ -325,7 +376,14 @@ const PromotionList = () => {
                   <Select
                     placeholder="End Status"
                     value={filters.ended || undefined}
-                    onChange={(value) => handleFilterChange('ended', value)}
+                    onChange={(value) => {
+                      // Clear started filter when selecting ended
+                      const newFilters = { ...filters, ended: value, started: undefined };
+                      setFilters(newFilters);
+                      const newPagination = { ...pagination, current: 1 };
+                      setPagination(newPagination);
+                      updateURL(newPagination, newFilters);
+                    }}
                     style={{ width: 140 }}
                     allowClear
                   >

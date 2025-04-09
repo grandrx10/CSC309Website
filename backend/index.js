@@ -16,11 +16,37 @@ const prisma = new PrismaClient();
 
 const cors = require("cors");
 const e = require("express");
-app.use(cors({
-    origin: process.env.FRONTEND_URL || "https://csc309website-production.up.railway.app", // Specify your frontend URL here
-    methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS", // Allow methods
-    credentials: true, // Allow credentials (cookies, etc.)
-}));
+const allowedOrigins = [
+    "https://csc309website-production.up.railway.app",
+    process.env.FRONTEND_URL
+  ].filter(Boolean); // Remove any undefined values
+  
+  const corsOptions = {
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS",
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+  };
+  
+  // 2. Apply CORS middleware
+  app.use(cors(corsOptions));
+
+  app.options('*', cors(corsOptions));
+
+// 4. Add necessary headers middleware
+app.use((req, res, next) => {
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  next();
+});
 
 // For keeping track of last request
 const requestTimestamps = {};

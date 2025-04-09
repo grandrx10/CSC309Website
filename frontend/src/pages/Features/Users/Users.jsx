@@ -121,10 +121,7 @@ const Users = () => {
             key: 'utorid',
             sorter: (a, b) => a.utorid.localeCompare(b.utorid),
             render: (text, record) => (
-                <a
-                    style={{ color: 'blue' }}
-                    onClick={() => navigate(`/users/update/${record.id}`)} // Navigate to the update page
-                >
+                <a onClick={() => navigate(`/users/update/${record.id}`)}>
                     {text}
                 </a>
             ),

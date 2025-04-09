@@ -5,4 +5,5 @@
 - Max Wang
 ## Current Setup
 - Run `npm install` in `/backend` and `/frontend`
-- Run `npm start` in `/frontend`
+- Run `node index.js` in `/backend`
+- Run `npm run build` then `npm run dev` in `/frontend`

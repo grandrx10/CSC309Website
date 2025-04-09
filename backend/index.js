@@ -2765,105 +2765,74 @@ app.post('/promotions', authenticateUser, isManagerOrHigher, async (req, res) =>
 });
 
 app.get('/promotions', authenticateUser, async (req, res) => {
-    const {
-        name,
-        type,
-        page = 1,
-        limit = 10,
-    } = req.query;
-    const userRole = req.user.role; // Assuming the user's role is stored in the token
-    const userUtorid = req.user.utorid; // Assuming the user's UTORid is stored in the token
-    if (page < 1 || limit < 1) {
-        return res.status(400).json({ err: "WHATRE YOU DOING?" })
-    }
     try {
-        const now = new Date();
-
-        // Build the filter object
-        const filter = {};
-
-        // Regular users can only see active promotions they have not used
-        if (['REGULAR', 'CASHIER'].includes(userRole)) {
-            filter.startTime = { lte: now }; // Promotions that have started
-            filter.endTime = { gt: now }; // Promotions that have not ended
-
-            // Exclude promotions the user has already used
-            const usedPromotions = await prisma.usage.findMany({
-                where: {
-                    userId: req.user.userId, // Assuming the user's ID is stored in the token
-                },
-                select: {
-                    promotionId: true,
-                },
-            });
-
-            const usedPromotionIds = usedPromotions.map(usage => usage.promotionId);
-            if (usedPromotionIds.length > 0) {
-                filter.id = { notIn: usedPromotionIds };
-            }
+      const { name, type, started, ended, page = 1, limit = 10 } = req.query;
+      const now = new Date();
+  
+      // Build filter conditions
+      const filter = {};
+  
+      // Name filter
+      if (name) {
+        filter.name = { contains: name };
+      }
+  
+      // Type filter
+      if (type) {
+        filter.type = type;
+      }
+  
+      // Started filter
+      if (started !== undefined) {
+        if (started === 'true') {
+          filter.startTime = { lte: now }; // Events that have started
+        } else {
+          filter.startTime = { gt: now }; // Events that have not started
         }
-
-        // Filter by name
-        if (name) {
-            filter.OR = [
-              { name: { contains: name.toLowerCase() } },
-              { name: { contains: name.toUpperCase() } },
-              { name: { contains: name } }
-            ];
-          }
-
-        // Filter by type
-        if (type) {
-            if (type !== 'automatic' && type !== 'one-time') {
-                return res.status(400).json({ error: 'type must be either "automatic" or "one-time"' });
-            }
-            filter.type = type;
+      }
+  
+      // Ended filter
+      if (ended !== undefined) {
+        if (ended === 'true') {
+          filter.endTime = { lte: now }; // Events that have ended
+        } else {
+          filter.endTime = { gt: now }; // Events that have not ended
         }
-
-        // Count total promotions matching the filters
-        const count = await prisma.promotion.count({ where: filter });
-
-        // Fetch paginated promotions
-        const promotions = await prisma.promotion.findMany({
-            where: filter,
-            skip: (page - 1) * limit,
-            take: parseInt(limit),
-            select: {
-                id: true,
-                name: true,
-                type: true,
-                endTime: true,
-                startTime: true,
-                minSpending: true,
-                rate: true,
-                points: true,
-            },
-        });
-
-        // Format the response
-        const results = promotions.map(promotion => ({
-            id: promotion.id,
-            name: promotion.name,
-            type: promotion.type,
-            endTime: promotion.endTime.toISOString(),
-            startTime: promotion.startTime.toISOString(),
-            minSpending: promotion.minSpending,
-            rate: promotion.rate,
-            points: promotion.points,
-        }));
-
-        // Return the response
-        res.status(200).json({
-            count,
-            results,
-        });
-
+      }
+  
+      // Count total promotions
+      const count = await prisma.promotion.count({ where: filter });
+  
+      // Get paginated results
+      const promotions = await prisma.promotion.findMany({
+        where: filter,
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit),
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          startTime: true,
+          endTime: true,
+          minSpending: true,
+          rate: true,
+          points: true
+        }
+      });
+  
+      res.status(200).json({
+        count,
+        results: promotions
+      });
+  
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'internal server error' });
+      console.error('Error in /promotions:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch promotions',
+        details: error.message 
+      });
     }
-});
-
+  });
 
 // GET /promotions/:promotionId - Get a single promotion (Regular or higher)
 app.get('/promotions/:promotionId', authenticateUser, async (req, res) => {

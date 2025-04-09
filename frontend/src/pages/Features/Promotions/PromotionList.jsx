@@ -121,6 +121,7 @@ const PromotionList = () => {
       }
       
       if (isManagerView) {
+        // Explicitly check for undefined (not just falsy)
         if (filters.started !== undefined) {
           params.set('started', filters.started);
         }
@@ -129,34 +130,19 @@ const PromotionList = () => {
         }
       }
   
-      // Log the constructed URL and parameters
-      console.log('Fetching promotions with parameters:', {
-        page: pagination.current,
-        limit: pagination.pageSize,
-        name: filters.name,
-        type: filters.type,
-        started: isManagerView ? filters.started : undefined,
-        ended: isManagerView ? filters.ended : undefined
-      });
-      console.log('Full API URL:', `${API_URL}/promotions?${params.toString()}`);
-  
       const response = await fetch(`${API_URL}/promotions?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-  
-      console.log('Response status:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Error response data:', errorData);
         throw new Error(errorData.error || 'Failed to fetch promotions');
       }
-  
+      
       const data = await response.json();
-      console.log('Received data:', data);
       
       setPromotions(data.results || []);
       setPagination(prev => ({ 
@@ -176,18 +162,19 @@ const PromotionList = () => {
     fetchPromotions();
   }, [fetchPromotions]);
 
-  const handleFilterChange = (name, value) => {
-    const trimmedValue = value?.trim();
-    const newFilters = { 
-      ...filters, 
-      [name]: trimmedValue === '' ? undefined : trimmedValue 
-    };
-    setFilters(newFilters);
-    setPendingSearch(name === 'name' ? value : pendingSearch);
-    const newPagination = { ...pagination, current: 1 };
-    setPagination(newPagination);
-    updateURL(newPagination, newFilters);
+  
+
+const handleFilterChange = (name, value) => {
+  const newFilters = { 
+    ...filters, 
+    [name]: value === '' ? undefined : value 
   };
+  setFilters(newFilters);
+  setPendingSearch(name === 'name' ? value : pendingSearch);
+  const newPagination = { ...pagination, current: 1 };
+  setPagination(newPagination);
+  updateURL(newPagination, newFilters);
+};
 
   const handleTableChange = (newPagination) => {
     setPagination(newPagination);
@@ -366,15 +353,8 @@ const PromotionList = () => {
                 <>
                   <Select
                     placeholder="Start Status"
-                    value={filters.started || undefined}
-                    onChange={(value) => {
-                      // Clear ended filter when selecting started
-                      const newFilters = { ...filters, started: value, ended: undefined };
-                      setFilters(newFilters);
-                      const newPagination = { ...pagination, current: 1 };
-                      setPagination(newPagination);
-                      updateURL(newPagination, newFilters);
-                    }}
+                    value={filters.started}
+                    onChange={(value) => handleFilterChange('started', value)}
                     style={{ width: 140 }}
                     allowClear
                   >
@@ -383,15 +363,8 @@ const PromotionList = () => {
                   </Select>
                   <Select
                     placeholder="End Status"
-                    value={filters.ended || undefined}
-                    onChange={(value) => {
-                      // Clear started filter when selecting ended
-                      const newFilters = { ...filters, ended: value, started: undefined };
-                      setFilters(newFilters);
-                      const newPagination = { ...pagination, current: 1 };
-                      setPagination(newPagination);
-                      updateURL(newPagination, newFilters);
-                    }}
+                    value={filters.ended}
+                    onChange={(value) => handleFilterChange('ended', value)}
                     style={{ width: 140 }}
                     allowClear
                   >

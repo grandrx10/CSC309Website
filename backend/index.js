@@ -2664,7 +2664,96 @@ app.post('/events/:eventId/transactions', authenticateUser, async (req, res) => 
 });
 
 
-app.post('/promotions', authenticateUser, isManagerOrHigher, async (req, res) => {
+app.get('/promotions', authenticateUser, async (req, res) => {
+    try {
+      const { name, type, started, ended, page = 1, limit = 10 } = req.query;
+      const userRole = req.user.role.toUpperCase();
+      const now = new Date();
+  
+      // Validate parameters
+      if (started !== undefined && ended !== undefined) {
+        return res.status(400).json({ error: 'cannot specify both started and ended' });
+      }
+  
+      // Build filter conditions
+      const filter = {};
+  
+      // Name filter
+      if (name) {
+        filter.name = { contains: name };
+      }
+  
+      // Type filter
+      if (type) {
+        if (type !== 'automatic' && type !== 'one-time') {
+          return res.status(400).json({ error: 'type must be either "automatic" or "one-time"' });
+        }
+        filter.type = type;
+      }
+  
+      // For regular users, only show active promotions
+      if (userRole === 'REGULAR' || userRole === 'CASHIER') {
+        filter.startTime = { lte: now }; // Promotions that have started
+        filter.endTime = { gte: now };   // Promotions that haven't ended
+      } 
+      // For managers/superusers, apply additional filters
+      else {
+        // Started filter
+        if (started !== undefined) {
+          if (started === 'true') {
+            filter.startTime = { lte: now }; // Promotions that have started
+          } else {
+            filter.startTime = { gt: now };  // Promotions that haven't started
+          }
+        }
+  
+        // Ended filter
+        if (ended !== undefined) {
+          if (ended === 'true') {
+            filter.endTime = { lte: now };   // Promotions that have ended
+          } else {
+            filter.endTime = { gt: now };    // Promotions that haven't ended
+          }
+        }
+      }
+  
+      // Count total promotions
+      const count = await prisma.promotion.count({ where: filter });
+  
+      // Get paginated results
+      const promotions = await prisma.promotion.findMany({
+        where: filter,
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit),
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          ...(userRole === 'MANAGER' || userRole === 'SUPERUSER' ? {
+            startTime: true,
+          } : {}),
+          endTime: true,
+          minSpending: true,
+          rate: true,
+          points: true
+        }
+      });
+  
+      res.status(200).json({
+        count,
+        results: promotions
+      });
+  
+    } catch (error) {
+      console.error('Error in /promotions:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch promotions',
+        details: error.message 
+      });
+    }
+  });
+
+  app.post('/promotions', authenticateUser, isManagerOrHigher, async (req, res) => {
     const {
         name,
         description,
@@ -2764,75 +2853,6 @@ app.post('/promotions', authenticateUser, isManagerOrHigher, async (req, res) =>
     }
 });
 
-app.get('/promotions', authenticateUser, async (req, res) => {
-    try {
-      const { name, type, started, ended, page = 1, limit = 10 } = req.query;
-      const now = new Date();
-  
-      // Build filter conditions
-      const filter = {};
-  
-      // Name filter
-      if (name) {
-        filter.name = { contains: name };
-      }
-  
-      // Type filter
-      if (type) {
-        filter.type = type;
-      }
-  
-      // Started filter
-      if (started !== undefined) {
-        if (started === 'true') {
-          filter.startTime = { lte: now }; // Events that have started
-        } else {
-          filter.startTime = { gt: now }; // Events that have not started
-        }
-      }
-  
-      // Ended filter
-      if (ended !== undefined) {
-        if (ended === 'true') {
-          filter.endTime = { lte: now }; // Events that have ended
-        } else {
-          filter.endTime = { gt: now }; // Events that have not ended
-        }
-      }
-  
-      // Count total promotions
-      const count = await prisma.promotion.count({ where: filter });
-  
-      // Get paginated results
-      const promotions = await prisma.promotion.findMany({
-        where: filter,
-        skip: (parseInt(page) - 1) * parseInt(limit),
-        take: parseInt(limit),
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          startTime: true,
-          endTime: true,
-          minSpending: true,
-          rate: true,
-          points: true
-        }
-      });
-  
-      res.status(200).json({
-        count,
-        results: promotions
-      });
-  
-    } catch (error) {
-      console.error('Error in /promotions:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch promotions',
-        details: error.message 
-      });
-    }
-  });
 
 // GET /promotions/:promotionId - Get a single promotion (Regular or higher)
 app.get('/promotions/:promotionId', authenticateUser, async (req, res) => {

@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 
 const cors = require("cors");
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "https://csc-309-website.vercel.app", //"https://csc309website-production.up.railway.app",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000", //"https://csc309website-production.up.railway.app",
     methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS", 
     credentials: true, 
 }));

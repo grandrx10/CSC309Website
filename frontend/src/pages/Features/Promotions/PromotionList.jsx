@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Table, Button, Input, Select, Space, Card, message, Dropdown, Menu } from 'antd';
 import { PlusOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -7,7 +7,6 @@ import NavBar from '../../../components/NavBar';
 
 const { Search } = Input;
 const { Option } = Select;
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const ROLE_HIERARCHY = {
   'superuser': ['superuser', 'manager', 'cashier', 'regular'],
@@ -19,25 +18,53 @@ const ROLE_HIERARCHY = {
 const PromotionList = () => {
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
-  const [filters, setFilters] = useState({
-    name: '',
-    type: '',
-    started: '',
-    ended: ''
-  });
   const [userRole, setUserRole] = useState('');
   const [currentViewRole, setCurrentViewRole] = useState('regular');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Initialize state from URL parameters
+  const initialParams = () => {
+    const params = new URLSearchParams(location.search);
+    return {
+      pagination: {
+        current: parseInt(params.get('page')) || 1,
+        pageSize: parseInt(params.get('limit')) || 10,
+        total: 0,
+      },
+      filters: {
+        name: params.get('name') || '',
+        type: params.get('type') || '',
+        started: params.get('started') || '',
+        ended: params.get('ended') || '',
+      }
+    };
+  };
+
+  const [pagination, setPagination] = useState(initialParams().pagination);
+  const [filters, setFilters] = useState(initialParams().filters);
+
+  // Update URL with current state
+  const updateURL = useCallback((newPagination, newFilters) => {
+    const params = new URLSearchParams();
+    
+    // Add pagination parameters
+    params.set('page', newPagination.current);
+    params.set('limit', newPagination.pageSize);
+    
+    // Add filter parameters
+    if (newFilters.name) params.set('name', newFilters.name);
+    if (newFilters.type) params.set('type', newFilters.type);
+    if (newFilters.started) params.set('started', newFilters.started);
+    if (newFilters.ended) params.set('ended', newFilters.ended);
+    
+    navigate({ search: params.toString() }, { replace: true });
+  }, [navigate]);
 
   const fetchUserRole = useCallback(async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(API_URL + "/users/me", {
+      const response = await fetch("http://localhost:3100/users/me", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -51,7 +78,6 @@ const PromotionList = () => {
           const role = data.role.toLowerCase();
           setUserRole(role);
           
-          // Initialize view role from localStorage or use user's actual role
           const savedRole = localStorage.getItem('currentViewRole');
           const availableRoles = ROLE_HIERARCHY[role] || ['regular'];
           
@@ -75,16 +101,20 @@ const PromotionList = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
+      
+      // Prepare query parameters from current state
       const params = new URLSearchParams({
         page: pagination.current,
         limit: pagination.pageSize,
-        ...(filters.name && { name: filters.name }),
-        ...(filters.type && { type: filters.type }),
-        ...(filters.started && { started: filters.started }),
-        ...(filters.ended && { ended: filters.ended })
       });
 
-      const response = await fetch(`${API_URL}/promotions?${params.toString()}`, {
+      // Add filters if they exist
+      if (filters.name) params.append('name', filters.name);
+      if (filters.type) params.append('type', filters.type);
+      if (filters.started) params.append('started', filters.started);
+      if (filters.ended) params.append('ended', filters.ended);
+
+      const response = await fetch(`http://localhost:3100/promotions?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -113,12 +143,16 @@ const PromotionList = () => {
   }, [fetchPromotions]);
 
   const handleFilterChange = (name, value) => {
-    setFilters(prev => ({ ...prev, [name]: value }));
-    setPagination(prev => ({ ...prev, current: 1 }));
+    const newFilters = { ...filters, [name]: value };
+    setFilters(newFilters);
+    const newPagination = { ...pagination, current: 1 };
+    setPagination(newPagination);
+    updateURL(newPagination, newFilters);
   };
 
-  const handleTableChange = (pagination) => {
-    setPagination(pagination);
+  const handleTableChange = (newPagination) => {
+    setPagination(newPagination);
+    updateURL(newPagination, filters);
   };
 
   const handleRoleChange = (role) => {
@@ -153,6 +187,13 @@ const PromotionList = () => {
   const isManagerView = ['manager', 'superuser'].includes(currentViewRole);
 
   const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 100,
+      render: (id) => <span style={{ fontWeight: 'bold' }}>{id}</span>
+    },
     {
       title: 'Name',
       dataIndex: 'name',

@@ -29,7 +29,6 @@
     },
     "scripts": {
         "check-env": "node check-env.js",
-        "install": "npm install",
         "start": "serve -s build",
         "build": "react-scripts build",
         "dev": "react-scripts start",

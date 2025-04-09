@@ -29,7 +29,7 @@
     },
     "scripts": {
         "check-env": "node check-env.js",
-        "start": "serve -s build",
+        "start": "serve -s build -l $PORT",
         "build": "react-scripts build",
         "dev": "react-scripts start",
         "test": "react-scripts test",

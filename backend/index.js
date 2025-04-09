@@ -935,7 +935,7 @@ app.post('/transactions', authenticateUser, async (req, res) => {
             }
 
             const relatedTransaction = await prisma.transaction.findUnique({
-                where: { id: relatedId },
+                where: { id: parseInt(relatedId, 10), },
             });
 
             if (!relatedTransaction) {
@@ -947,7 +947,7 @@ app.post('/transactions', authenticateUser, async (req, res) => {
                     utorid,
                     type,
                     amount,
-                    relatedId,
+                    relatedId: parseInt(relatedId, 10),
                     spent: 0,
                     earned: 0,
                     remark,

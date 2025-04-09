@@ -17,7 +17,7 @@ const SuccessMessage = ({ utorId, amount }) => (
 
 const Adjustment = () => {
   const [utorId, setUtorId] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(null);  // Initialize amount as null
   const [relatedId, setRelatedId] = useState('');
   const [remark, setRemark] = useState('');
   const [promotions, setPromotions] = useState('');
@@ -29,7 +29,7 @@ const Adjustment = () => {
   };
 
   const handleAmountChange = (value) => {
-    setAmount(value);
+    setAmount(value);  // Amount can now be positive or negative
   };
 
   const handleRelatedIdChange = (event) => {
@@ -69,7 +69,7 @@ const Adjustment = () => {
         const data = await response.json();
         setResult({ success: true, utorId: data.utorid, amount: data.amount });
         setUtorId('');
-        setAmount('');
+        setAmount(null);
         setRelatedId('');
         setRemark('');
         setPromotions('');
@@ -99,14 +99,14 @@ const Adjustment = () => {
               placeholder="Enter UTORid"
             />
 
-            <label htmlFor="amount"><b>Enter Adjustment Amount:</b></label>
+            <label htmlFor="amount"><b>Enter Adjustment Amount (Points to add/remove):</b></label>
             <InputNumber
               id="amount"
               value={amount}
               onChange={handleAmountChange}
               placeholder="Enter Amount"
-              step="0.01"
               style={{ width: '100%' }}
+              min={-100000}  // Optional: set a min value for safety, adjust as necessary
             />
 
             <label htmlFor="relatedId"><b>Related Transaction ID:</b></label>
@@ -140,7 +140,7 @@ const Adjustment = () => {
               type="primary"
               onClick={handleAdjustment}
               loading={loading}
-              disabled={!utorId || !amount || !relatedId}
+              disabled={!utorId || amount === null || !relatedId}
             >
               Complete Adjustment
             </Button>

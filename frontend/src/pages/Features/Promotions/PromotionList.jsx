@@ -64,6 +64,7 @@ const PromotionList = () => {
     
     navigate({ search: params.toString() }, { replace: true });
   }, [navigate]);
+  
 
   const fetchUserRole = useCallback(async () => {
     try {
@@ -162,19 +163,28 @@ const PromotionList = () => {
     fetchPromotions();
   }, [fetchPromotions]);
 
-  
-
-const handleFilterChange = (name, value) => {
-  const newFilters = { 
-    ...filters, 
-    [name]: value === '' ? undefined : value 
+  const isPromotionActive = (promotion) => {
+    const now = new Date();
+    const startTime = new Date(promotion.startTime);
+    const endTime = new Date(promotion.endTime);
+    return now >= startTime && now <= endTime;
   };
-  setFilters(newFilters);
-  setPendingSearch(name === 'name' ? value : pendingSearch);
-  const newPagination = { ...pagination, current: 1 };
-  setPagination(newPagination);
-  updateURL(newPagination, newFilters);
-};
+
+  const filteredPromotions = isManagerView 
+    ? promotions 
+    : promotions.filter(promotion => isPromotionActive(promotion));
+
+  const handleFilterChange = (name, value) => {
+    const newFilters = { 
+      ...filters, 
+      [name]: value === '' ? undefined : value 
+    };
+    setFilters(newFilters);
+    setPendingSearch(name === 'name' ? value : pendingSearch);
+    const newPagination = { ...pagination, current: 1 };
+    setPagination(newPagination);
+    updateURL(newPagination, newFilters);
+  };
 
   const handleTableChange = (newPagination) => {
     setPagination(newPagination);
@@ -182,29 +192,29 @@ const handleFilterChange = (name, value) => {
   };
 
   const handleRoleChange = (role) => {
-  setCurrentViewRole(role);
-  localStorage.setItem('currentViewRole', role);
-  
-  // Reset filters completely when changing role
-  const newFilters = {
-    name: filters.name || '',
-    type: filters.type || '',
-    started: undefined,
-    ended: undefined
+    setCurrentViewRole(role);
+    localStorage.setItem('currentViewRole', role);
+    
+    // Reset filters completely when changing role
+    const newFilters = {
+      name: filters.name || '',
+      type: filters.type || '',
+      started: undefined,
+      ended: undefined
+    };
+    
+    // If switching to non-manager view, set filters to only show active promotions
+    if (!['manager', 'superuser'].includes(role)) {
+      const now = new Date().toISOString();
+      newFilters.started = 'true';
+      newFilters.ended = 'false';
+    }
+    
+    setFilters(newFilters);
+    const newPagination = { ...pagination, current: 1 };
+    setPagination(newPagination);
+    updateURL(newPagination, newFilters);
   };
-  
-  // If switching to non-manager view, set filters to only show active promotions
-  if (!['manager', 'superuser'].includes(role)) {
-    const now = new Date().toISOString();
-    newFilters.started = 'true';
-    newFilters.ended = 'false';
-  }
-  
-  setFilters(newFilters);
-  const newPagination = { ...pagination, current: 1 };
-  setPagination(newPagination);
-  updateURL(newPagination, newFilters);
-};
 
   const renderRoleDropdown = () => {
     if (!userRole) return null;
@@ -377,7 +387,7 @@ const handleFilterChange = (name, value) => {
 
             <Table
               columns={columns}
-              dataSource={promotions}
+              dataSource={filteredPromotions}
               rowKey="id"
               loading={loading}
               pagination={{

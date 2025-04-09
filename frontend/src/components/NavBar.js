@@ -96,7 +96,7 @@ const NavBar = ({ children }) => {
                                             className={`menu-item-container ${isActive('/transactions/purchase') ? 'active' : ''}`}
                                             onClick={() => navigate('/transactions/purchase')}
                                         >
-                                            <div className="menu-button-label">Create Purchaser</div>
+                                            <div className="menu-button-label">Create Purchase</div>
                                             <div className="role-subtitle">For Cashiers</div>
                                         </div>
                                     </li>

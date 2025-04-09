@@ -18,6 +18,8 @@ const EventForm = ({ event, onSubmit, onCancel, isManagerOrSuperuser }) => {
     onSubmit(payload);
   };
 
+  console.log(isManagerOrSuperuser);
+
   return (
     <Card
       title={event ? 'Edit Event' : 'Create Event'}

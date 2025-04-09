@@ -79,14 +79,19 @@ const EventDetails = ({
                 <Tag color="red" style={{ marginLeft: 8 }}>Full</Tag>
               )}
             </Descriptions.Item>
-            {showStatus && (
-              <Descriptions.Item label="Status">
-                <Tag color={event.published ? 'green' : 'orange'}>
-                  {event.published ? 'Published' : 'Draft'}
-                </Tag>
-              </Descriptions.Item>
-            )}
-          </Descriptions>
+              {showStatus && (
+                <>
+                  <Descriptions.Item label="Status">
+                    <Tag color={event.published ? 'green' : 'orange'}>
+                      {event.published ? 'Published' : 'Draft'}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Points Available">
+                    {event.pointsRemain || '0'}
+                  </Descriptions.Item>
+                </>
+              )}
+  </Descriptions>
         </div>
       </Card>
 

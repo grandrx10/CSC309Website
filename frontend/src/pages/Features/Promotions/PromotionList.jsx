@@ -7,6 +7,7 @@ import NavBar from '../../../components/NavBar';
 
 const { Search } = Input;
 const { Option } = Select;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3100";
 
 const ROLE_HIERARCHY = {
   'superuser': ['superuser', 'manager', 'cashier', 'regular'],
@@ -22,6 +23,8 @@ const PromotionList = () => {
   const [currentViewRole, setCurrentViewRole] = useState('regular');
   const navigate = useNavigate();
   const location = useLocation();
+
+  const isManagerView = ['manager', 'superuser'].includes(currentViewRole);
 
   // Initialize state from URL parameters
   const initialParams = () => {
@@ -64,7 +67,7 @@ const PromotionList = () => {
   const fetchUserRole = useCallback(async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch("http://localhost:3100/users/me", {
+      const response = await fetch(`${API_URL}/users/me`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -107,25 +110,29 @@ const PromotionList = () => {
         page: pagination.current,
         limit: pagination.pageSize,
       });
-
+  
       // Add filters if they exist
       if (filters.name) params.append('name', filters.name);
       if (filters.type) params.append('type', filters.type);
-      if (filters.started) params.append('started', filters.started);
-      if (filters.ended) params.append('ended', filters.ended);
-
-      const response = await fetch(`http://localhost:3100/promotions?${params.toString()}`, {
+      
+      // Only add started/ended filters for manager or higher
+      if (isManagerView) {
+        if (filters.started !== '') params.append('started', filters.started);
+        if (filters.ended !== '') params.append('ended', filters.ended);
+      }
+  
+      const response = await fetch(`${API_URL}/promotions?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-
+  
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || 'Failed to fetch promotions');
       }
-
+  
       const data = await response.json();
       setPromotions(data.results || []);
       setPagination(prev => ({ ...prev, total: data.count || 0 }));
@@ -136,7 +143,7 @@ const PromotionList = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.current, pagination.pageSize, filters]);
+  }, [pagination.current, pagination.pageSize, filters, isManagerView]);
 
   useEffect(() => {
     fetchPromotions();
@@ -184,8 +191,6 @@ const PromotionList = () => {
     );
   };
 
-  const isManagerView = ['manager', 'superuser'].includes(currentViewRole);
-
   const columns = [
     {
       title: 'ID',
@@ -210,12 +215,12 @@ const PromotionList = () => {
       key: 'type',
       render: (type) => type === 'automatic' ? 'Automatic' : 'One-Time'
     },
-    {
+    ...(isManagerView ? [{
       title: 'Start Time',
       dataIndex: 'startTime',
       key: 'startTime',
       render: (text) => dayjs(text).format('MMM D, YYYY h:mm A')
-    },
+    }] : []),
     {
       title: 'End Time',
       dataIndex: 'endTime',
@@ -289,26 +294,30 @@ const PromotionList = () => {
                 <Option value="automatic">Automatic</Option>
                 <Option value="one-time">One-Time</Option>
               </Select>
-              <Select
-                placeholder="Start Status"
-                value={filters.started || undefined}
-                onChange={(value) => handleFilterChange('started', value)}
-                style={{ width: 140 }}
-                allowClear
-              >
-                <Option value="true">Started</Option>
-                <Option value="false">Not Started</Option>
-              </Select>
-              <Select
-                placeholder="End Status"
-                value={filters.ended || undefined}
-                onChange={(value) => handleFilterChange('ended', value)}
-                style={{ width: 140 }}
-                allowClear
-              >
-                <Option value="true">Ended</Option>
-                <Option value="false">Not Ended</Option>
-              </Select>
+              {isManagerView && (
+                <>
+                  <Select
+                    placeholder="Start Status"
+                    value={filters.started || undefined}
+                    onChange={(value) => handleFilterChange('started', value)}
+                    style={{ width: 140 }}
+                    allowClear
+                  >
+                    <Option value="true">Started</Option>
+                    <Option value="false">Not Started</Option>
+                  </Select>
+                  <Select
+                    placeholder="End Status"
+                    value={filters.ended || undefined}
+                    onChange={(value) => handleFilterChange('ended', value)}
+                    style={{ width: 140 }}
+                    allowClear
+                  >
+                    <Option value="true">Ended</Option>
+                    <Option value="false">Not Ended</Option>
+                  </Select>
+                </>
+              )}
             </div>
 
             <Table

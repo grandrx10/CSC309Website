@@ -4,7 +4,6 @@ import SignIn from './pages/Signin/Signin';
 import Home from './pages/Home/Home';
 import Event from './components/Events/Event/Event';
 import EditEvent from './components/Events/Event/EditEvent';
-import EventsView from './components/Events/EventsList/EventsView';
 import EventsList from './components/Events/EventsList/EventsList';
 import CreateEvent from './pages/Events/CreateEvent';
 
@@ -45,7 +44,7 @@ function App() {
         <Route path="/events/:eventId" element={<Event />} />
 
 
-        <Route path="/promotions" element={<PromotionsListView />} />
+        <Route path="/promotions" element={<PromotionList />} />
         <Route path="/promotions/new" element={<PromotionForm isEdit={false} />} />
         <Route path="/promotions/:id" element={<PromotionDetailView />} />
         <Route path="/promotions/:id/edit" element={<PromotionForm isEdit={true} />} />

@@ -70,18 +70,8 @@ const NavBar = ({ children }) => {
                 <h3 className="navbar-title">Loyalty Program</h3>
                 <ul className="navbar-menu">
                     <li><button onClick={() => navigate('/home')} className={isActive('/home')}>Home</button></li>
-                    
-                    <li>
-                        <button onClick={togglePromotionsMenu}>Promotions   {showPromotionsMenu ? '\u25B2' : '\u25BC'}</button>
-                        {showPromotionsMenu && (
-                            <ul className="sub-menu">
-                                <li><button onClick={() => navigate('/promotions/promotionlist')} className={isActive('/promotions/promotionlist')}>View All</button></li>
-                                <li><button onClick={() => navigate('/promotions/managepromotion')} className={isActive('/promotions/managepromotion')}>Manage</button></li>
-                            </ul>
-                            
-        
-                        )}
-                    </li>
+                    <li><button onClick={() => navigate('/promotions')} className={isActive('/promotions')}>Promotions</button></li>
+           
                     <li>
                         <button onClick={toggleTransactionsMenu}>Transactions   {showTransactionsMenu ? '\u25B2' : '\u25BC'}</button>
                         {showTransactionsMenu && (

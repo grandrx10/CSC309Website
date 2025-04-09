@@ -14,7 +14,7 @@ const ROLE_HIERARCHY = {
   'cashier': ['cashier', 'regular'],
   'regular': ['regular']
 };
-
+const API_URL =  process.env.REACT_APP_API_URL || "http://localhost:3100";
 const EventsList = () => {
   const [state, setState] = useState({
     events: [],
@@ -57,7 +57,7 @@ const EventsList = () => {
         throw new Error('No authentication token found');
       }
 
-      const response = await fetch('http://localhost:3100/users/me', {
+      const response = await fetch(API_URL + '/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -157,7 +157,7 @@ const EventsList = () => {
           params.delete(key);
         }
       });
-      const response = await fetch(`http://localhost:3100/events?${params.toString()}`, {
+      const response = await fetch(API_URL + `/events?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

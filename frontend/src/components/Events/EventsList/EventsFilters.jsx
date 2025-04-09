@@ -98,7 +98,7 @@ const EventsFilters = ({
         <Space size="middle" align="center">
           <span>Sort by:</span>
           <Radio.Group
-            value={filters.sortBy || 'startTime'}
+            value={filters.sortBy || 'name'}
             onChange={(e) => onFilterChange('sortBy', e.target.value)}
             buttonStyle="solid"
           >

@@ -16,9 +16,8 @@ import {
   Space 
 } from 'antd';
 import "./Signin.module.css"; // You can keep your custom styles if needed
-
 const { Title, Text } = Typography;
-
+const API_URL = process.env.REACT_APP_API_URL || "https://localhost:3100";
 function SignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +28,7 @@ function SignIn() {
     setLoading(true);
     
     try {
-      const response = await fetch("http://localhost:3100/auth/tokens", {
+      const response = await fetch(API_URL + "/auth/tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ utorid, password }),

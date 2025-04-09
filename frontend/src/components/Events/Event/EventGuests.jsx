@@ -1,9 +1,8 @@
 import { Table, Button, Space, message, Form, Input, Modal, Typography, Row, Col, Card, InputNumber } from 'antd';
 import { UserAddOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
-
 const { Title } = Typography;
-
+const API_URL =  process.env.REACT_APP_API_URL || "http://localhost:3100";
 const EventGuests = ({ eventId, canManageGuests, canAwardPoints, canDeleteGuests }) => {
   const [guests, setGuests] = useState([]);
   const [loading] = useState(false);
@@ -18,7 +17,7 @@ const EventGuests = ({ eventId, canManageGuests, canAwardPoints, canDeleteGuests
   const fetchGuests = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}`, {
+      const response = await fetch(API_URL + `/events/${eventId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -41,7 +40,7 @@ const EventGuests = ({ eventId, canManageGuests, canAwardPoints, canDeleteGuests
     
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}/guests`, {
+      const response = await fetch(API_URL + `/events/${eventId}/guests`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -70,7 +69,7 @@ const EventGuests = ({ eventId, canManageGuests, canAwardPoints, canDeleteGuests
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}/guests/${guestId}`, {
+      const response = await fetch(API_URL + `/events/${eventId}/guests/${guestId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -94,7 +93,7 @@ const EventGuests = ({ eventId, canManageGuests, canAwardPoints, canDeleteGuests
   
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3100/events/${eventId}/transactions`, {
+      const response = await fetch(API_URL + `/events/${eventId}/transactions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

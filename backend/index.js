@@ -1,23 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
-const port = (() => {
-    const args = process.argv;
-
-    if (args.length !== 3) {
-        console.error("usage: node index.js port");
-        process.exit(1);
-    }
-
-    const num = parseInt(args[2], 10);
-    if (isNaN(num)) {
-        console.error("error: argument must be an integer.");
-        process.exit(1);
-    }
-
-    return num;
-})();
-
+const port = process.env.PORT || 8080;
+require('dotenv').config()
 const express = require("express");
 const app = express();
 app.use(express.json());
@@ -32,16 +17,18 @@ const prisma = new PrismaClient();
 const cors = require("cors");
 const e = require("express");
 app.use(cors({
-    origin: "http://localhost:3000", // Specify your frontend URL here
-    methods: "GET,POST,PUT,DELETE,PATCH", // Allow methods
-    credentials: true, // Allow credentials (cookies, etc.)
+    origin: process.env.FRONTEND_URL || "https://localhost:3000", //"https://csc309website-production.up.railway.app",
+    methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS", 
+    credentials: true, 
 }));
 
 // For keeping track of last request
 const requestTimestamps = {};
 
-const jwt_secret = "SuperSecretKey!"
-
+const jwt_secret = process.env.JWT_SECRET || "SuperSecretKey!"
+app.get('/api/hello', (req, res) => {
+    res.json({ message: "Hello from Railway backend!" });
+  });
 // Authentication Middleware
 const authenticateUser = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1]; // Get the token from the Authorization header

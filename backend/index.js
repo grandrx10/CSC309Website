@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3100;
 require('dotenv').config()
 const express = require("express");
 const app = express();
@@ -15,9 +15,8 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const cors = require("cors");
-const e = require("express");
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "https://localhost:3000", //"https://csc309website-production.up.railway.app",
+    origin: process.env.FRONTEND_URL || "https://csc-309-website.vercel.app", //"https://csc309website-production.up.railway.app",
     methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS", 
     credentials: true, 
 }));

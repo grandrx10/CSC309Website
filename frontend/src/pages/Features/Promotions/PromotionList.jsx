@@ -39,8 +39,11 @@ const PromotionList = () => {
       filters: {
         name: params.get('name') || '',
         type: params.get('type') || '',
-        started: params.get('started') || undefined,
-        ended: params.get('ended') || undefined
+        // Only include started/ended if manager view
+        ...(isManagerView && {
+          started: params.get('started') || undefined,
+          ended: params.get('ended') || undefined
+        })
       }
     };
   };
@@ -52,19 +55,20 @@ const PromotionList = () => {
   const updateURL = useCallback((newPagination, newFilters) => {
     const params = new URLSearchParams();
     
-    // Add pagination parameters
     params.set('page', newPagination.current);
     params.set('limit', newPagination.pageSize);
     
-    // Add filter parameters only if they have values
     if (newFilters.name) params.set('name', newFilters.name);
     if (newFilters.type) params.set('type', newFilters.type);
-    if (newFilters.started !== undefined) params.set('started', newFilters.started);
-    if (newFilters.ended !== undefined) params.set('ended', newFilters.ended);
+    
+    // Only include started/ended for manager views
+    if (isManagerView) {
+      if (newFilters.started !== undefined) params.set('started', newFilters.started);
+      if (newFilters.ended !== undefined) params.set('ended', newFilters.ended);
+    }
     
     navigate({ search: params.toString() }, { replace: true });
-  }, [navigate]);
-  
+  }, [navigate, isManagerView]);
 
   const fetchUserRole = useCallback(async () => {
     try {
@@ -121,12 +125,17 @@ const PromotionList = () => {
         params.set('type', filters.type);
       }
       
-      if (isManagerView) {
-        // Explicitly check for undefined (not just falsy)
+      // For non-manager views, only show active promotions
+      if (!isManagerView) {
+        // Only send one parameter - either started or ended
+        params.set('active', 'true');
+      } 
+      // For manager views, include their selected filters
+      else {
+        // Only include one time-based filter at a time
         if (filters.started !== undefined) {
           params.set('started', filters.started);
-        }
-        if (filters.ended !== undefined) {
+        } else if (filters.ended !== undefined) {
           params.set('ended', filters.ended);
         }
       }
@@ -163,17 +172,6 @@ const PromotionList = () => {
     fetchPromotions();
   }, [fetchPromotions]);
 
-  const isPromotionActive = (promotion) => {
-    const now = new Date();
-    const startTime = new Date(promotion.startTime);
-    const endTime = new Date(promotion.endTime);
-    return now >= startTime && now <= endTime;
-  };
-
-  const filteredPromotions = isManagerView 
-    ? promotions 
-    : promotions.filter(promotion => isPromotionActive(promotion));
-
   const handleFilterChange = (name, value) => {
     const newFilters = { 
       ...filters, 
@@ -195,20 +193,16 @@ const PromotionList = () => {
     setCurrentViewRole(role);
     localStorage.setItem('currentViewRole', role);
     
-    // Reset filters completely when changing role
+    // Reset filters when changing role
     const newFilters = {
       name: filters.name || '',
       type: filters.type || '',
-      started: undefined,
-      ended: undefined
+      // Only include started/ended for manager views
+      ...(isManagerView && {
+        started: undefined,
+        ended: undefined
+      })
     };
-    
-    // If switching to non-manager view, set filters to only show active promotions
-    if (!['manager', 'superuser'].includes(role)) {
-      const now = new Date().toISOString();
-      newFilters.started = 'true';
-      newFilters.ended = 'false';
-    }
     
     setFilters(newFilters);
     const newPagination = { ...pagination, current: 1 };
@@ -306,6 +300,12 @@ const PromotionList = () => {
           color = now.isBefore(end) ? 'green' : 'red';
         }
         
+        // For non-manager views, all promotions should be active
+        if (!isManagerView) {
+          status = 'Active';
+          color = 'green';
+        }
+        
         return <span style={{ color, fontWeight: 'bold' }}>{status}</span>;
       }
     },
@@ -387,7 +387,7 @@ const PromotionList = () => {
 
             <Table
               columns={columns}
-              dataSource={filteredPromotions}
+              dataSource={promotions} // Show all promotions from API (filtering done server-side)
               rowKey="id"
               loading={loading}
               pagination={{

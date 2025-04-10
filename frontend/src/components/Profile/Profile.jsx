@@ -81,17 +81,6 @@ const Profile = () => {
 
           <Divider />
 
-          <h3>Promotions</h3>
-          {userData.promotions && userData.promotions.length > 0 ? (
-            <ul>
-              {userData.promotions.map((promo, index) => (
-                <li key={index}>{promo}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No promotions available</p>
-          )}
-
           <Divider />
 
           <Space>
